@@ -523,7 +523,6 @@ for test in tests/*.sh; do bash "$test"; done
 | **obra/superpowers** | Development methodology — brainstorming, planning, TDD, debugging, code review, SDD |
 | **osmontero/opencode-skills** | Concrete agents and technical skills — implementer, reviewers, security, testing |
 | **wshobson/agents** | Specialist ecosystem — backend, database, frontend, security, testing, devops packs |
-| **rohitg00/agentmemory** | Memory concepts — recall, save, lesson, handoff (conceptual adaptation only) |
 
 See `docs/upstream-adaptations.md` for detailed attribution.
 
