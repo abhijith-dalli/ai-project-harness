@@ -3,13 +3,12 @@ set -euo pipefail
 
 # AI Project Harness Installer
 # Installs the reusable harness into a target project.
-# Usage: ./install.sh /path/to/project [--enable-agentmemory]
+# Usage: ./install.sh /path/to/project [OPTIONS]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HARNESS_DIR="$(dirname "$SCRIPT_DIR")"
 TEMPLATES_DIR="$HARNESS_DIR/templates"
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -25,7 +24,6 @@ usage() {
     echo "Usage: $0 <target-project-path> [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --enable-agentmemory    Enable optional agentmemory integration"
     echo "  --enable-cursor         Enable Cursor adapter"
     echo "  --enable-codex          Enable Codex CLI adapter"
     echo "  --packs <packs>         Enable specialist packs (comma-separated)"
@@ -33,20 +31,17 @@ usage() {
     echo ""
     echo "Example:"
     echo "  $0 /path/to/MyProject"
-    echo "  $0 /path/to/MyProject --enable-agentmemory --packs backend,database"
+    echo "  $0 /path/to/MyProject --enable-cursor --packs backend,database"
     exit 0
 }
 
-# Parse arguments
 TARGET_PROJECT=""
-ENABLE_AGENTMEMORY=false
 ENABLE_CURSOR=false
 ENABLE_CODEX=false
 PACKS=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --enable-agentmemory) ENABLE_AGENTMEMORY=true; shift ;;
         --enable-cursor) ENABLE_CURSOR=true; shift ;;
         --enable-codex) ENABLE_CODEX=true; shift ;;
         --packs) PACKS="$2"; shift 2 ;;
@@ -61,15 +56,12 @@ if [ -z "$TARGET_PROJECT" ]; then
     usage
 fi
 
-# Resolve to absolute path
 TARGET_PROJECT="$(cd "$TARGET_PROJECT" 2>/dev/null && pwd)" || {
     error "Target project does not exist: $TARGET_PROJECT"
     exit 1
 }
 
 info "Installing AI Project Harness into: $TARGET_PROJECT"
-
-# ─── Validate target project ───────────────────────────────────────
 
 if [ ! -d "$TARGET_PROJECT" ]; then
     error "Target directory does not exist: $TARGET_PROJECT"
@@ -86,8 +78,6 @@ else
     warn "Not a Git repository — memory isolation will use directory name"
 fi
 
-# ─── Detect project name ──────────────────────────────────────────
-
 PROJECT_NAME=""
 if $IS_GIT_REPO; then
     PROJECT_NAME="$(basename "$(git -C "$TARGET_PROJECT" rev-parse --show-toplevel)")"
@@ -102,12 +92,10 @@ info "Creating .harness/ directory structure..."
 
 HARNESS_TARGET="$TARGET_PROJECT/.harness"
 
-# Core directories
 mkdir -p "$HARNESS_TARGET/agents"
 mkdir -p "$HARNESS_TARGET/skills"
 mkdir -p "$HARNESS_TARGET/hooks"
 mkdir -p "$HARNESS_TARGET/config"
-mkdir -p "$HARNESS_TARGET/adapters"
 mkdir -p "$HARNESS_TARGET/memory/shared/project"
 mkdir -p "$HARNESS_TARGET/memory/shared/decisions"
 mkdir -p "$HARNESS_TARGET/memory/shared/lessons"
@@ -174,8 +162,6 @@ else
     info "  Config exists (skipping)"
 fi
 
-# ─── Copy project context ────────────────────────────────────────
-
 if [ ! -f "$HARNESS_TARGET/project-context.md" ]; then
     cp "$TEMPLATES_DIR/.harness/project-context.md" "$HARNESS_TARGET/"
     info "  Installed project-context.md"
@@ -237,7 +223,7 @@ if [ -n "$PACKS" ]; then
     info "Enabling specialist packs: $PACKS"
     IFS=',' read -ra PACK_ARRAY <<< "$PACKS"
     for pack in "${PACK_ARRAY[@]}"; do
-        pack="$(echo "$pack" | xargs)"  # trim whitespace
+        pack="$(echo "$pack" | xargs)"
         pack_src="$HARNESS_DIR/packs/$pack"
         if [ -d "$pack_src" ]; then
             mkdir -p "$HARNESS_TARGET/packs/$pack"
@@ -249,35 +235,11 @@ if [ -n "$PACKS" ]; then
     done
 fi
 
-# ─── Configure agentmemory (optional) ─────────────────────────────
-
-if $ENABLE_AGENTMEMORY; then
-    info "Configuring agentmemory integration..."
-    if command -v npx &>/dev/null; then
-        info "  Checking agentmemory installation..."
-        if npx -y @agentmemory/agentmemory --version &>/dev/null 2>&1; then
-            ok "  agentmemory is available"
-        else
-            warn "  agentmemory not found — will install on first use"
-        fi
-    else
-        warn "  npx not found — agentmemory requires Node.js"
-    fi
-
-    # Update harness config to enable agentmemory
-    if [ -f "$HARNESS_TARGET/config/harness.yaml" ]; then
-        sed -i.bak 's/enabled: false/enabled: true/' "$HARNESS_TARGET/config/harness.yaml" 2>/dev/null || \
-        sed -i '' 's/enabled: false/enabled: true/' "$HARNESS_TARGET/config/harness.yaml" 2>/dev/null || true
-        rm -f "$HARNESS_TARGET/config/harness.yaml.bak"
-    fi
-fi
-
 # ─── Update .gitignore ────────────────────────────────────────────
 
 info "Updating .gitignore..."
 GITIGNORE="$TARGET_PROJECT/.gitignore"
 
-# Entries to add
 GITIGNORE_ENTRIES=(
     ".harness/memory/local/"
     ".harness/packs/"

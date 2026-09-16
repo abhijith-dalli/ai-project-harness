@@ -6,7 +6,6 @@ set -euo pipefail
 # Usage: ./doctor.sh /path/to/project
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HARNESS_DIR="$(dirname "$SCRIPT_DIR")"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -61,7 +60,6 @@ else
     exit 1
 fi
 
-# Agents
 agent_count=$(ls "$HARNESS_TARGET/agents/"*.md 2>/dev/null | wc -l | xargs)
 if [ "$agent_count" -gt 0 ]; then
     check ok "Agents: $agent_count installed"
@@ -69,7 +67,6 @@ else
     check fail "No agents found"
 fi
 
-# Skills
 skill_count=$(ls -d "$HARNESS_TARGET/skills/"*/ 2>/dev/null | wc -l | xargs)
 if [ "$skill_count" -gt 0 ]; then
     check ok "Skills: $skill_count installed"
@@ -77,7 +74,6 @@ else
     check fail "No skills found"
 fi
 
-# Hooks
 hook_count=$(ls "$HARNESS_TARGET/hooks/"*.md 2>/dev/null | wc -l | xargs)
 if [ "$hook_count" -gt 0 ]; then
     check ok "Hooks: $hook_count installed"
@@ -85,17 +81,14 @@ else
     check warn "No hooks found"
 fi
 
-# Config
 if [ -f "$HARNESS_TARGET/config/harness.yaml" ]; then
     check ok "Configuration: harness.yaml exists"
 else
     check warn "No harness.yaml configuration"
 fi
 
-# Project context
 if [ -f "$HARNESS_TARGET/project-context.md" ]; then
     check ok "Project context: exists"
-    # Check if it's been filled in
     if grep -q "Name:$" "$HARNESS_TARGET/project-context.md" 2>/dev/null; then
         check warn "Project context: not filled in yet"
     else
@@ -123,7 +116,6 @@ else
     check warn "Local memory directory missing"
 fi
 
-# Count memory files
 shared_files=$(find "$HARNESS_TARGET/memory/shared" -name "*.md" -not -name "README.md" 2>/dev/null | wc -l | xargs)
 if [ "$shared_files" -gt 0 ]; then
     check ok "Shared memory: $shared_files files"
@@ -137,7 +129,6 @@ echo ""
 
 echo -e "${BLUE}Provider Adapters${NC}"
 
-# Claude Code
 if [ -f "$TARGET_PROJECT/.claude/settings.json" ]; then
     check ok "Claude Code: settings.json"
 else
@@ -150,14 +141,12 @@ else
     check warn "Claude Code: no hooks.json"
 fi
 
-# OpenCode
 if [ -f "$TARGET_PROJECT/opencode.json" ]; then
     check ok "OpenCode: opencode.json"
 else
     check warn "OpenCode: no opencode.json"
 fi
 
-# Cursor
 if [ -f "$TARGET_PROJECT/.cursor/mcp.json" ]; then
     check ok "Cursor: mcp.json"
 else
@@ -174,7 +163,6 @@ if command -v git &>/dev/null; then
     if git -C "$TARGET_PROJECT" rev-parse --git-dir &>/dev/null; then
         check ok "Git repository detected"
 
-        # Check .gitignore
         if grep -qF ".harness/memory/local/" "$TARGET_PROJECT/.gitignore" 2>/dev/null; then
             check ok ".gitignore: local memory is ignored"
         else
@@ -185,47 +173,6 @@ if command -v git &>/dev/null; then
     fi
 else
     check warn "Git not installed"
-fi
-
-echo ""
-
-# ─── 5. Runtime dependencies ─────────────────────────────────────
-
-echo -e "${BLUE}Runtime Dependencies${NC}"
-
-if command -v node &>/dev/null; then
-    check ok "Node.js: $(node --version)"
-else
-    check warn "Node.js not found (required for agentmemory MCP)"
-fi
-
-if command -v npx &>/dev/null; then
-    check ok "npx: available"
-else
-    check warn "npx not found (required for agentmemory MCP)"
-fi
-
-echo ""
-
-# ─── 6. agentmemory (optional) ───────────────────────────────────
-
-echo -e "${BLUE}agentmemory (Optional)${NC}"
-
-if command -v npx &>/dev/null; then
-    if npx -y @agentmemory/agentmemory --version &>/dev/null 2>&1; then
-        check ok "agentmemory: installed"
-    else
-        check warn "agentmemory: not installed (optional)"
-    fi
-else
-    check warn "agentmemory: cannot check (npx not available)"
-fi
-
-# Check agentmemory health if running
-if curl -fsS http://localhost:3111/agentmemory/health &>/dev/null 2>&1; then
-    check ok "agentmemory service: running"
-else
-    check warn "agentmemory service: not running (optional)"
 fi
 
 echo ""

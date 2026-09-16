@@ -17,14 +17,14 @@ The harness defines four core lifecycle events:
 
 ### Claude Code
 
-| Logical Event | Claude Code Hook | Script |
-|---|---|---|
-| session-start | `SessionStart` | `hooks/session-start.mjs` |
-| before-task | `PreToolUse` (with detection) | `hooks/pre-tool-use.mjs` |
-| after-task | `PostToolUse` | `hooks/post-tool-use.mjs` |
-| before-commit | `PreToolUse` (Write/Edit) | `hooks/pre-tool-use.mjs` |
+| Logical Event | Claude Code Hook |
+|---|---|
+| session-start | `SessionStart` |
+| before-task | `PreToolUse` (with task detection) |
+| after-task | `PostToolUse` |
+| before-commit | `PreToolUse` (Write/Edit) |
 
-Additional Claude Code hooks (from agentmemory):
+Additional Claude Code hooks:
 - `UserPromptSubmit` — capture user prompt context
 - `PreCompact` — snapshot before context compaction
 - `SubagentStart` / `SubagentStop` — track subagent lifecycle
@@ -32,29 +32,21 @@ Additional Claude Code hooks (from agentmemory):
 
 ### OpenCode
 
-| Logical Event | OpenCode Hook | Handler |
-|---|---|---|
-| session-start | `session.created` | Session initialization |
-| before-task | `chat.message` | Message processing |
-| after-task | `message.part.updated` | Part completion |
-| before-commit | `file.edited` | File change detection |
-
-OpenCode provides 22 auto-capture hooks covering:
-- Session lifecycle (created, idle, status, compacted, updated, deleted, error)
-- Messages (chat.message, message.updated, message.removed)
-- Parts/steps (subtask, tool, error, step-finish, reasoning, patch)
-- File enrichment (tool.execute.before, file.edited)
-- Permissions (permission.updated, permission.replied)
-- Tasks (todo.updated, command.executed)
+| Logical Event | OpenCode Hook |
+|---|---|
+| session-start | `session.created` |
+| before-task | `chat.message` |
+| after-task | `message.part.updated` |
+| before-commit | `file.edited` |
 
 ### Cursor
 
-| Logical Event | Cursor Hook | Script |
-|---|---|---|
-| session-start | `sessionStart` | `session-start.mjs` |
-| before-task | `beforeSubmitPrompt` | `prompt-submit.mjs` |
-| after-task | `postToolUse` | `post-tool-use.mjs` |
-| before-commit | `preToolUse` | `pre-tool-use.mjs` |
+| Logical Event | Cursor Hook |
+|---|---|
+| session-start | `sessionStart` |
+| before-task | `beforeSubmitPrompt` |
+| after-task | `postToolUse` |
+| before-commit | `preToolUse` |
 
 Additional Cursor hooks:
 - `stop` — session summary
@@ -62,12 +54,12 @@ Additional Cursor hooks:
 
 ### Codex CLI
 
-| Logical Event | Codex Hook | Script |
-|---|---|---|
-| session-start | `SessionStart` | `session-start.mjs` |
-| before-task | `PreToolUse` | `pre-tool-use.mjs` |
-| after-task | `PostToolUse` | `post-tool-use.mjs` |
-| before-commit | `PreToolUse` (Write/Edit) | `pre-tool-use.mjs` |
+| Logical Event | Codex Hook |
+|---|---|
+| session-start | `SessionStart` |
+| before-task | `PreToolUse` |
+| after-task | `PostToolUse` |
+| before-commit | `PreToolUse` (Write/Edit) |
 
 ## Hook Implementation
 
@@ -119,27 +111,7 @@ actions:
   - Run tests, lint, type check
   - Review changes in diff
   - Check for secrets/credentials
-  - Link commit to session (if agentmemory enabled)
 ```
-
-## Agentmemory Lifecycle Hooks
-
-When agentmemory is enabled, additional hooks are available:
-
-| Hook | Purpose |
-|---|---|
-| `SessionStart` | Register session, inject memory context |
-| `UserPromptSubmit` | Capture user prompt, detect project |
-| `PreToolUse` | Inject file-specific memory context |
-| `PostToolUse` | Record tool result as observation |
-| `PostToolUseFailure` | Record failed tool attempts |
-| `PreCompact` | Snapshot before context compaction |
-| `SubagentStart` | Track subagent spawning |
-| `SubagentStop` | Record subagent results |
-| `Stop` | Summarize session, run consolidation |
-| `SessionEnd` | Finalize session, fire graph extraction |
-
-These hooks are optional and managed by the agentmemory adapter, not the core harness.
 
 ## Hook Limitations
 

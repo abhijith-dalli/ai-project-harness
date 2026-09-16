@@ -10,24 +10,14 @@ providers:
   claude_code:
     enabled: true
     hooks: true
-    mcp: true
   opencode:
     enabled: true
     hooks: true
-    mcp: true
   cursor:
     enabled: false  # Enable when Cursor is used
     hooks: true
-    mcp: true
   codex:
     enabled: false  # Enable when Codex CLI is used
-
-# Optional agentmemory integration
-agentmemory:
-  enabled: false
-  # When enabled, the harness uses agentmemory as an optional
-  # advanced backend. The canonical memory source remains
-  # .harness/memory/shared/ regardless of this setting.
 
 # Specialist packs to enable
 # Available: backend, database, frontend, security, testing, devops
@@ -40,7 +30,7 @@ memory:
   shared_path: ".harness/memory/shared"
   local_path: ".harness/memory/local"
   # Memory quality: only save durable, useful, project-specific knowledge
-  auto_save: false  # Set to true to enable automatic memory capture
+  auto_save: false
 
 # Hooks configuration
 hooks:

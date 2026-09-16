@@ -40,8 +40,6 @@ If the answer to any question is "no," do not save.
    - `observations/` — useful discoveries about the codebase
    - `project/` — stable project facts and conventions
 4. **Write the memory file** with proper YAML frontmatter
-5. **If agentmemory is enabled** — also save via MCP tools:
-   - `memory_save` — save to agentmemory backend
 
 ## Memory File Format
 

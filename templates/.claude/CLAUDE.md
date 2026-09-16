@@ -1,7 +1,6 @@
 # Claude Code Project Instructions
 
 > This file is loaded by Claude Code when working in this project.
-> It provides project-specific context and instructions.
 
 ## Project Context
 
@@ -9,11 +8,9 @@ Read `.harness/project-context.md` for project-specific information.
 
 ## Memory
 
-This project uses the `.harness/memory/` architecture for persistent knowledge:
+This project uses `.harness/memory/` for persistent knowledge:
 - `shared/` — durable project knowledge (committed)
 - `local/` — temporary session context (gitignored)
-
-If agentmemory is enabled, it provides an optional advanced backend for memory operations. The canonical memory source remains `.harness/memory/shared/`.
 
 ## Skills
 

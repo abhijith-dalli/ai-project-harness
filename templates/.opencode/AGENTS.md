@@ -8,7 +8,7 @@ Read `.harness/project-context.md` for project-specific information.
 
 ## Memory
 
-This project uses the `.harness/memory/` architecture for persistent knowledge:
+This project uses `.harness/memory/` for persistent knowledge:
 - `shared/` — durable project knowledge (committed)
 - `local/` — temporary session context (gitignored)
 
@@ -19,11 +19,6 @@ Available skills are in `.harness/skills/`. They are loaded on demand by the ski
 ## Agents
 
 Available agent roles are in `.harness/agents/`. They can be dispatched as subagents.
-
-## Commands
-
-- `/recall` — Search and retrieve relevant project memory
-- `/remember` — Save important findings to project memory
 
 ## Workflow
 

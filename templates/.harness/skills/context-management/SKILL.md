@@ -66,15 +66,6 @@ continuity:
 3. Verify current state matches expected state
 4. Continue from where work stopped
 
-## Agentmemory Context
-
-When agentmemory is enabled, context management is partially automated:
-
-- `SessionStart` hook recalls relevant context
-- `UserPromptSubmit` hook recalls task-specific memory
-- `PreToolUse` hook injects file-specific context
-- Session summaries are generated at session end
-
 ## Rules
 
 1. **Prioritize relevance** — keep what matters, drop what doesn't

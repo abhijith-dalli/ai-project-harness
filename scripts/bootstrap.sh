@@ -17,7 +17,7 @@ TARGET_PROJECT="${1:-}"
 shift || true
 
 if [ -z "$TARGET_PROJECT" ]; then
-    echo "Usage: $0 <target-project-path> [--enable-agentmemory] [--packs backend,database]"
+    echo "Usage: $0 <target-project-path> [--enable-cursor] [--packs backend,database]"
     exit 1
 fi
 

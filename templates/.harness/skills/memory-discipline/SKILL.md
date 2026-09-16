@@ -35,7 +35,6 @@ This skill codifies the session loop the memory model expects. It governs when a
 2. Read relevant files in `.harness/memory/shared/decisions/`
 3. Read relevant files in `.harness/memory/shared/lessons/`
 4. Check `.harness/memory/shared/observations/`
-5. If agentmemory is enabled, use recall MCP tools
 
 ### What to Look For
 

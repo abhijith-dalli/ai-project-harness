@@ -62,7 +62,6 @@ Before classifying, always:
 1. Read `.harness/memory/shared/project/` for project context
 2. Read `.harness/memory/shared/decisions/` for relevant architectural decisions
 3. Read `.harness/memory/shared/lessons/` for known pitfalls
-4. If agentmemory is enabled, use the recall skill to search for relevant memories
 
 ## Handoff Protocol
 

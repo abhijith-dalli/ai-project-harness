@@ -38,22 +38,17 @@ echo -e "${BLUE}AI Project Harness — Status${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-# ─── Harness version ─────────────────────────────────────────────
-
 HARNESS_VERSION="unknown"
 if [ -f "$HARNESS_DIR/VERSION" ]; then
     HARNESS_VERSION="$(cat "$HARNESS_DIR/VERSION")"
 fi
 
-# Check installed version
 INSTALLED_VERSION="unknown"
 if [ -f "$HARNESS_TARGET/VERSION" ]; then
     INSTALLED_VERSION="$(cat "$HARNESS_TARGET/VERSION")"
 fi
 
 echo -e "  ${BLUE}Harness Version:${NC} $HARNESS_VERSION (template) / $INSTALLED_VERSION (installed)"
-
-# ─── Project info ────────────────────────────────────────────────
 
 PROJECT_NAME="$(basename "$TARGET_PROJECT")"
 if git -C "$TARGET_PROJECT" rev-parse --git-dir &>/dev/null 2>&1; then
@@ -65,23 +60,17 @@ echo -e "  ${BLUE}Project:${NC}         $PROJECT_NAME"
 echo -e "  ${BLUE}Location:${NC}        $TARGET_PROJECT"
 echo ""
 
-# ─── Components ──────────────────────────────────────────────────
-
 echo -e "${BLUE}Components${NC}"
 
-# Agents
 agent_count=$(ls "$HARNESS_TARGET/agents/"*.md 2>/dev/null | wc -l | xargs)
 echo -e "  Agents:       $agent_count"
 
-# Skills
 skill_count=$(ls -d "$HARNESS_TARGET/skills/"*/ 2>/dev/null | wc -l | xargs)
 echo -e "  Skills:       $skill_count"
 
-# Hooks
 hook_count=$(ls "$HARNESS_TARGET/hooks/"*.md 2>/dev/null | wc -l | xargs)
 echo -e "  Hooks:        $hook_count"
 
-# Packs
 if [ -d "$HARNESS_TARGET/packs" ]; then
     pack_count=$(ls -d "$HARNESS_TARGET/packs/"*/ 2>/dev/null | wc -l | xargs)
     echo -e "  Packs:        $pack_count"
@@ -90,8 +79,6 @@ else
 fi
 
 echo ""
-
-# ─── Memory ──────────────────────────────────────────────────────
 
 echo -e "${BLUE}Memory${NC}"
 
@@ -111,22 +98,10 @@ echo -e "    Project:       $shared_project"
 echo -e "  Local sessions:  $local_sessions"
 echo ""
 
-# ─── Provider status ─────────────────────────────────────────────
-
 echo -e "${BLUE}Providers${NC}"
 
 [ -f "$TARGET_PROJECT/.claude/settings.json" ] && echo -e "  Claude Code:  ${GREEN}configured${NC}" || echo -e "  Claude Code:  ${YELLOW}not configured${NC}"
 [ -f "$TARGET_PROJECT/opencode.json" ] && echo -e "  OpenCode:     ${GREEN}configured${NC}" || echo -e "  OpenCode:     ${YELLOW}not configured${NC}"
 [ -f "$TARGET_PROJECT/.cursor/mcp.json" ] && echo -e "  Cursor:       ${GREEN}configured${NC}" || echo -e "  Cursor:       ${YELLOW}not configured${NC}"
-
-echo ""
-
-# ─── agentmemory ─────────────────────────────────────────────────
-
-if curl -fsS http://localhost:3111/agentmemory/health &>/dev/null 2>&1; then
-    echo -e "  agentmemory:  ${GREEN}running${NC}"
-else
-    echo -e "  agentmemory:  ${YELLOW}not running${NC}"
-fi
 
 echo ""

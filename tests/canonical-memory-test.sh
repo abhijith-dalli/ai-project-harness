@@ -2,8 +2,7 @@
 set -euo pipefail
 
 # Test: Canonical File-Based Memory
-# Verifies that the harness works with file-based memory only
-# (no agentmemory server required).
+# Verifies that the harness works with file-based memory only.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HARNESS_DIR="$(dirname "$SCRIPT_DIR")"
@@ -15,16 +14,15 @@ NC='\033[0m'
 PASS=0
 FAIL=0
 
-# Create temporary project
 TMPDIR=$(mktemp -d)
 trap "rm -rf $TMPDIR" EXIT
 
-echo "Creating test project (no agentmemory)..."
+echo "Creating test project..."
 mkdir -p "$TMPDIR/FileMemoryTest"
 cd "$TMPDIR/FileMemoryTest"
 git init -q
 
-echo "Installing harness (no agentmemory)..."
+echo "Installing harness..."
 bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/FileMemoryTest" 2>/dev/null
 
 # Test 1: Can create decisions
@@ -129,17 +127,6 @@ if [ -f "$TMPDIR/FileMemoryTest/.harness/memory/local/sessions/001-session.md" ]
 else
     echo -e "  ${RED}✗${NC} Local memory failed"
     ((FAIL++))
-fi
-
-# Test 6: No agentmemory server needed
-echo ""
-echo "Test: No agentmemory server required..."
-if ! curl -fsS http://localhost:3111/agentmemory/health &>/dev/null 2>&1; then
-    echo -e "  ${GREEN}✓${NC} File-based memory works without agentmemory server"
-    ((PASS++))
-else
-    echo -e "  ${GREEN}✓${NC} File-based memory works (agentmemory also running)"
-    ((PASS++))
 fi
 
 echo ""

@@ -1,6 +1,6 @@
 # Memory Architecture
 
-The harness provides a canonical, provider-independent memory system that works with or without the optional agentmemory backend.
+The harness provides a canonical, provider-independent memory system stored as markdown files.
 
 ## Architecture
 
@@ -126,19 +126,6 @@ All agents working on the same project share `.harness/memory/shared/`:
 
 Provider caches are implementation details, not sources of truth.
 
-## agentmemory Integration (Optional)
-
-When agentmemory is enabled:
-- `.harness/memory/shared/` remains the canonical source
-- agentmemory provides an optional advanced backend
-- MCP tools enable search: `memory_smart_search`, `memory_recall`
-- Lifecycle hooks auto-capture session context
-
-When agentmemory is disabled:
-- File-based memory works independently
-- No server required
-- All agents can read/write markdown files
-
 ## Project Isolation
 
 Each project has its own `.harness/memory/`:
@@ -150,11 +137,6 @@ OESSystem/.harness/memory/
 ```
 
 Memory from one project never leaks into another.
-
-If agentmemory is enabled, project isolation uses the `project` field resolved from:
-1. `AGENTMEMORY_PROJECT_NAME` env var
-2. Git repo basename
-3. Directory basename
 
 ## What to Persist
 

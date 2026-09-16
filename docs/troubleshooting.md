@@ -38,9 +38,9 @@ chmod +x scripts/*.sh
 
 ## Provider Adapter Issues
 
-### Claude Code not finding MCP server
+### Claude Code not finding configuration
 
-**Cause:** MCP configuration not properly installed.
+**Cause:** .claude/ not properly installed.
 
 **Fix:**
 ```bash
@@ -53,14 +53,13 @@ cat .claude/settings.json
 
 ### OpenCode not loading skills
 
-**Cause:** opencode.json not in project root.
+**Cause:** opencode.json not in project root or AGENTS.md missing.
 
 **Fix:**
 ```bash
-# Verify opencode.json exists
+# Verify files exist
 cat opencode.json
-
-# Should contain mcp.agentmemory configuration
+cat .opencode/AGENTS.md
 ```
 
 ### Cursor hooks not firing
@@ -91,15 +90,12 @@ mkdir -p .harness/memory/local/sessions
 
 ### Memory leaking between projects
 
-**Cause:** Using agentmemory without proper project scoping.
+**Cause:** Each project should have its own `.harness/memory/` directory.
 
-**Fix:**
+**Fix:** Verify each project has its own `.harness/memory/`:
 ```bash
-# Set project name explicitly
-export AGENTMEMORY_PROJECT_NAME="MyProject"
-
-# Or verify git repo name is correct
-git rev-parse --show-toplevel | xargs basename
+ls -la /path/to/ProjectA/.harness/memory/
+ls -la /path/to/ProjectB/.harness/memory/
 ```
 
 ### Shared memory not committed
@@ -113,72 +109,6 @@ grep -n "harness/memory" .gitignore
 
 # Should only ignore local/, not shared/
 # Remove .harness/memory/shared/ from .gitignore if present
-```
-
-## agentmemory Issues
-
-### agentmemory service won't start
-
-**Cause:** Node.js not installed or wrong version.
-
-**Fix:**
-```bash
-# Check Node.js version (requires >= 20.0.0)
-node --version
-
-# Install/update Node.js
-# macOS:
-brew install node
-
-# Linux:
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-```
-
-### "npx: command not found"
-
-**Cause:** npm/npx not installed.
-
-**Fix:**
-```bash
-# Install npm (comes with Node.js)
-# Or install separately:
-sudo apt-get install npm
-```
-
-### agentmemory health check fails
-
-**Cause:** Service not running or wrong port.
-
-**Fix:**
-```bash
-# Check if service is running
-curl -fsS http://localhost:3111/agentmemory/health
-
-# Start the service
-./scripts/start.sh /path/to/project
-
-# Check logs
-cat /tmp/agentmemory.log
-```
-
-### MCP tools not available
-
-**Cause:** MCP server not configured or not running.
-
-**Fix:**
-```bash
-# Verify MCP configuration
-cat .claude/settings.json | grep -A5 mcpServers
-
-# Should contain:
-# "agentmemory": {
-#   "command": "npx",
-#   "args": ["-y", "@agentmemory/mcp"]
-# }
-
-# Start agentmemory if not running
-./scripts/start.sh /path/to/project
 ```
 
 ## Script Issues
@@ -208,15 +138,12 @@ Common failures:
 
 ### Slow memory recall
 
-**Cause:** Too many memory files or agentmemory not optimized.
+**Cause:** Too many memory files.
 
 **Fix:**
 ```bash
 # Archive old/superseded memories
 # Mark old decisions as superseded in their frontmatter
-
-# If using agentmemory, consolidate
-# (requires agentmemory MCP tool: memory_consolidate)
 ```
 
 ### Context window overflow

@@ -23,15 +23,10 @@ Search and retrieve relevant project memory before starting work. This skill ens
 1. **Identify what you need to know** — what context would help with this task?
 2. **Search shared memory** — read `.harness/memory/shared/` directories
 3. **Read project context** — check `.harness/project-context.md`
-4. **If agentmemory is enabled** — use MCP tools for advanced search:
-   - `memory_smart_search` — hybrid BM25+Vector+Graph search
-   - `memory_recall` — BM25-based recall
-5. **Synthesize findings** — combine relevant information
-6. **Apply to current task** — use recalled memory to inform decisions
+4. **Synthesize findings** — combine relevant information
+5. **Apply to current task** — use recalled memory to inform decisions
 
 ## Memory Search Strategy
-
-### File-based memory (always available)
 
 ```
 .harness/memory/shared/
@@ -39,13 +34,6 @@ Search and retrieve relevant project memory before starting work. This skill ens
 ├── decisions/        → search for decisions related to current task
 ├── lessons/          → search for lessons that might apply
 └── observations/     → search for relevant observations
-```
-
-### Agentmemory (when enabled)
-
-```
-memory_smart_search(query="relevant keywords", project="ProjectName")
-memory_recall(query="specific topic", project="ProjectName")
 ```
 
 ## What to Recall
@@ -73,8 +61,6 @@ recalled_memory:
   observations:
     - file: "path/to/observation.md"
       summary: "what was observed"
-  agentmemory:
-    - "relevant memory from agentmemory (if enabled)"
   application: "how this memory applies to the current task"
 ```
 
