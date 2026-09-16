@@ -1,0 +1,56 @@
+# Harness Configuration
+# This file controls the harness behavior for this project.
+
+harness:
+  version: "1.0.0"
+  project_name: ""  # Auto-detected from git repo name or directory name
+
+# Provider integrations
+providers:
+  claude_code:
+    enabled: true
+    hooks: true
+    mcp: true
+  opencode:
+    enabled: true
+    hooks: true
+    mcp: true
+  cursor:
+    enabled: false  # Enable when Cursor is used
+    hooks: true
+    mcp: true
+  codex:
+    enabled: false  # Enable when Codex CLI is used
+
+# Optional agentmemory integration
+agentmemory:
+  enabled: false
+  # When enabled, the harness uses agentmemory as an optional
+  # advanced backend. The canonical memory source remains
+  # .harness/memory/shared/ regardless of this setting.
+
+# Specialist packs to enable
+# Available: backend, database, frontend, security, testing, devops
+specialist_packs: []
+
+# Memory configuration
+memory:
+  # Shared memory is committed to version control
+  # Local memory is gitignored
+  shared_path: ".harness/memory/shared"
+  local_path: ".harness/memory/local"
+  # Memory quality: only save durable, useful, project-specific knowledge
+  auto_save: false  # Set to true to enable automatic memory capture
+
+# Hooks configuration
+hooks:
+  session_start: true
+  before_task: true
+  after_task: true
+  before_commit: true
+
+# Skills configuration
+skills:
+  # Core skills are always available
+  # Additional skills can be loaded from specialist packs
+  load_packs: true
