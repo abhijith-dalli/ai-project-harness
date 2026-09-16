@@ -1,0 +1,27 @@
+# Cursor Project Rules
+
+> These rules are loaded by Cursor when working in this project.
+
+## Project Context
+
+Read `.harness/project-context.md` for project-specific information.
+
+## Memory
+
+This project uses `.harness/memory/` for persistent knowledge:
+- `shared/` — durable project knowledge (committed)
+- `local/` — temporary session context (gitignored)
+
+## Skills
+
+Available skills are in `.harness/skills/`. Load them via the skill tool when triggered by context.
+
+## Agents
+
+Available agent roles are in `.harness/agents/`. Dispatch as subagents for specialized work.
+
+## Workflow
+
+1. Before starting work, recall relevant memory from `.harness/memory/shared/`
+2. Follow project conventions from `.harness/project-context.md`
+3. After completing work, save important findings to project memory

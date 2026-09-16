@@ -1,0 +1,71 @@
+{
+  "hooks": {
+    "sessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CURSOR_PLUGIN_ROOT}/hooks/session-start.mjs",
+            "shell": "bash"
+          }
+        ]
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CURSOR_PLUGIN_ROOT}/hooks/prompt-submit.mjs",
+            "shell": "bash"
+          }
+        ]
+      }
+    ],
+    "preToolUse": [
+      {
+        "matcher": "Shell|Read|Write|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CURSOR_PLUGIN_ROOT}/hooks/pre-tool-use.mjs",
+            "shell": "bash"
+          }
+        ]
+      }
+    ],
+    "postToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CURSOR_PLUGIN_ROOT}/hooks/post-tool-use.mjs",
+            "shell": "bash"
+          }
+        ]
+      }
+    ],
+    "stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CURSOR_PLUGIN_ROOT}/hooks/stop.mjs",
+            "shell": "bash"
+          }
+        ]
+      }
+    ],
+    "sessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CURSOR_PLUGIN_ROOT}/hooks/session-end.mjs",
+            "shell": "bash"
+          }
+        ]
+      }
+    ]
+  }
+}
