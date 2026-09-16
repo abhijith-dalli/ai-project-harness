@@ -51,7 +51,7 @@ Developer Machine
 ### Step 1 — Clone the harness
 
 ```bash
-git clone https://github.com/<your-org>/ai-project-harness.git
+git clone https://github.com/abhijith-dalli/ai-project-harness.git
 cd ai-project-harness
 ```
 
@@ -451,39 +451,344 @@ Quick setup: installs harness, runs doctor, verifies memory, prints next steps.
 
 ---
 
-## Updating the Harness
+## How to Install the Harness Into a Local Project
 
-### Check current version
+### Step 1 — Clone the reusable harness
+
+```bash
+git clone https://github.com/abhijith-dalli/ai-project-harness.git
+cd ai-project-harness
+```
+
+### Step 2 — Install into an existing project
+
+```bash
+./scripts/install.sh /path/to/YourProject
+```
+
+With options:
+
+```bash
+# Enable optional agentmemory integration
+./scripts/install.sh /path/to/YourProject --enable-agentmemory
+
+# Enable Cursor adapter
+./scripts/install.sh /path/to/YourProject --enable-cursor
+
+# Enable specialist packs
+./scripts/install.sh /path/to/YourProject --packs backend,database,testing
+
+# Combine options
+./scripts/install.sh /path/to/YourProject --enable-agentmemory --enable-cursor --packs backend,database
+```
+
+The installer creates the harness **inside your project**, not as a subdirectory:
+
+```
+YourProject/
+├── .harness/                     ← harness source of truth
+│   ├── agents/
+│   ├── skills/
+│   ├── hooks/
+│   ├── memory/
+│   │   ├── shared/               ← committed
+│   │   └── local/                ← gitignored
+│   ├── config/
+│   └── project-context.md
+├── .claude/                      ← Claude Code adapter
+├── .opencode/                    ← OpenCode adapter
+├── opencode.json                 ← OpenCode MCP config
+└── [your existing source code]
+```
+
+### Step 3 — Configure the project identity
+
+Edit `.harness/project-context.md` with your project's details:
+
+```markdown
+# Project Context
+
+## Project
+**Name:** MyAwesomeProject
+**Purpose:** What this project does
+**Status:** Active
+
+## Technology
+**Language:** Python 3.12
+**Framework:** FastAPI
+**Database:** PostgreSQL
+```
+
+### Step 4 — Configure agentmemory (optional)
+
+If you enabled agentmemory:
+
+```bash
+# The installer checks for agentmemory availability
+# If not installed, it will be installed on first use
+
+# Start the agentmemory service
+./scripts/start.sh /path/to/YourProject
+
+# Verify it's running
+curl -fsS http://localhost:3111/agentmemory/health
+```
+
+### Step 5 — Verify the installation
+
+```bash
+./scripts/doctor.sh /path/to/YourProject
+```
+
+### Step 6 — Open the project with your AI agent
+
+```bash
+cd /path/to/YourProject
+```
+
+Then open with Claude Code, Cursor, or OpenCode as you normally would. The harness is automatically available — the AI agent will use `.harness/` for skills, agents, hooks, and memory.
+
+### Step 7 — Verify memory works
+
+1. Ask the agent: "Remember that this project uses PostgreSQL for its primary database"
+2. Start a new session
+3. Ask: "What database does this project use?"
+4. The response should be based on the project's memory
+
+Test isolation with another project:
+
+```bash
+# Install harness in a different project
+./scripts/install.sh /path/to/AnotherProject
+
+# Memory from YourProject should NOT appear in AnotherProject
+```
+
+---
+
+## How to Update the Harness in the Future
+
+### Step 1 — Check current version
 
 ```bash
 ./scripts/status.sh /path/to/YourProject
 ```
 
-### Get latest harness
+### Step 2 — Get the latest harness
 
 ```bash
 cd ai-project-harness
 git pull
 ```
 
-### Run the updater
+### Step 3 — Run the updater
 
 ```bash
 ./scripts/update.sh /path/to/YourProject
 ```
 
-### Verify after update
+The updater updates **harness-managed files only**. It preserves:
+
+- `.harness/project-context.md` — your project context
+- `.harness/memory/` — all project memory
+- `.harness/config/` — your configuration
+- `.harness/packs/` — your enabled specialist packs
+- Application source code
+
+### Step 4 — Run doctor after updating
 
 ```bash
 ./scripts/doctor.sh /path/to/YourProject
 ```
 
-The updater preserves:
+### Step 5 — Test memory after update
 
-- `.harness/project-context.md`
-- `.harness/memory/` contents
-- Project-specific configuration
-- Application source code
+Verify previously stored knowledge still exists:
+
+```
+Recall an existing decision from this project's memory.
+```
+
+The update must not create a new unrelated memory scope or delete existing memory.
+
+---
+
+## Updating agentmemory
+
+The harness and agentmemory are related but separately versioned:
+
+```
+Harness:    v1.0.0
+agentmemory: v0.9.x
+```
+
+When upgrading agentmemory:
+
+1. Check the upstream release notes at [rohitg00/agentmemory](https://github.com/rohitg00/agentmemory)
+2. Check harness compatibility (documented in VERSION compatibility notes)
+3. Back up important project configuration if appropriate
+4. Upgrade agentmemory using the supported upstream command:
+
+```bash
+# If installed globally
+npm install -g @agentmemory/agentmemory@latest
+
+# Or use npx (auto-installs latest)
+npx -y @agentmemory/agentmemory@latest
+```
+
+5. Run the harness doctor:
+
+```bash
+./scripts/doctor.sh /path/to/YourProject
+```
+
+6. Test memory save/recall
+7. Test memory persistence after restart
+8. Test cross-agent access
+9. Test project isolation
+
+---
+
+## Recommended Day-to-Day Workflow
+
+Once installed, the normal developer workflow is simple:
+
+### Start working
+
+```
+Open the project
+    ↓
+Start Claude Code, Cursor, or OpenCode
+    ↓
+Harness identifies the project
+    ↓
+.memory/shared/ provides project memory
+    ↓
+Agent uses skills, hooks, and context
+    ↓
+Work is performed
+    ↓
+Important knowledge is remembered
+```
+
+### During development
+
+- The orchestrator classifies your task and selects the right agents
+- The explorer investigates the codebase before changes
+- The planner creates a plan for complex tasks
+- The implementer follows TDD and self-reviews
+- The reviewer checks quality before completion
+- Memory is saved automatically (or manually via the memory-save skill)
+
+### End of session
+
+- Important decisions, lessons, and observations are saved to `.harness/memory/shared/`
+- Session-specific notes go to `.harness/memory/local/` (gitignored)
+- The next session starts with recalled context
+
+---
+
+## Updating the Harness Repository Itself
+
+When the harness source code needs a change:
+
+1. Make the change in `ai-project-harness`
+2. Run the harness tests:
+
+```bash
+cd ai-project-harness
+bash tests/install-test.sh
+bash tests/memory-isolation-test.sh
+bash tests/canonical-memory-test.sh
+bash tests/reinstall-test.sh
+```
+
+3. Test installation into a clean sample project
+4. Test update behavior
+5. Test memory isolation
+6. Update VERSION
+7. Commit the changes
+8. Create a Git tag/release when appropriate
+9. Push to GitHub
+
+---
+
+## Important Update Rule
+
+**Never overwrite project-specific AI knowledge during a harness update.**
+
+### Project-owned (never overwritten)
+
+```
+.harness/project-context.md
+.harness/memory/
+project-specific agents
+project-specific skills
+project-specific configuration
+```
+
+### Harness-owned (updated by update.sh)
+
+```
+generic reusable skills
+generic reusable roles
+generic hooks
+generic adapters
+generic scripts
+generic templates
+```
+
+If a file is both harness-managed and project-customized, the updater preserves the customized version and logs a warning.
+
+---
+
+## Quick Reference
+
+### First-time installation
+
+```bash
+git clone https://github.com/abhijith-dalli/ai-project-harness.git
+cd ai-project-harness
+
+./scripts/install.sh /path/to/YourProject
+./scripts/doctor.sh /path/to/YourProject
+```
+
+### Later update
+
+```bash
+cd ai-project-harness
+git pull
+
+./scripts/update.sh /path/to/YourProject
+./scripts/doctor.sh /path/to/YourProject
+```
+
+### Check status
+
+```bash
+./scripts/status.sh /path/to/YourProject
+```
+
+### Start services (if agentmemory enabled)
+
+```bash
+./scripts/start.sh /path/to/YourProject
+```
+
+### Stop services
+
+```bash
+./scripts/stop.sh /path/to/YourProject
+```
+
+### Run all tests
+
+```bash
+cd ai-project-harness
+for test in tests/*.sh; do bash "$test"; done
+```
 
 ---
 
