@@ -44,3 +44,7 @@ skills:
   # Core skills are always available
   # Additional skills can be loaded from specialist packs
   load_packs: true
+
+# Dashboard configuration
+dashboard:
+  enabled: true  # Set to false to disable dashboard data recording

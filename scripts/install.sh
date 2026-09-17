@@ -96,6 +96,8 @@ mkdir -p "$HARNESS_TARGET/agents"
 mkdir -p "$HARNESS_TARGET/skills"
 mkdir -p "$HARNESS_TARGET/hooks"
 mkdir -p "$HARNESS_TARGET/config"
+mkdir -p "$HARNESS_TARGET/data"
+mkdir -p "$HARNESS_TARGET/dashboard"
 mkdir -p "$HARNESS_TARGET/memory/shared/project"
 mkdir -p "$HARNESS_TARGET/memory/shared/decisions"
 mkdir -p "$HARNESS_TARGET/memory/shared/lessons"
@@ -123,7 +125,7 @@ ok "Agents installed"
 # ─── Copy skills ──────────────────────────────────────────────────
 
 info "Installing skills..."
-for skill_dir in "$TEMPLATES_DIR/.harness/skills/"*/; do
+for skill_dir in "$TEMPLATES_DIR/.harness/skills/"*; do
     if [ -d "$skill_dir" ] && [ -f "$skill_dir/SKILL.md" ]; then
         skill_name="$(basename "$skill_dir")"
         if [ ! -d "$HARNESS_TARGET/skills/$skill_name" ]; then
@@ -168,6 +170,38 @@ if [ ! -f "$HARNESS_TARGET/project-context.md" ]; then
 else
     info "  project-context.md exists (skipping)"
 fi
+
+# ─── Copy runtime data files ──────────────────────────────────────
+
+info "Installing runtime data files..."
+for data_file in "$TEMPLATES_DIR/.harness/data/"*.jsonl; do
+    if [ -f "$data_file" ]; then
+        data_name="$(basename "$data_file")"
+        if [ ! -f "$HARNESS_TARGET/data/$data_name" ]; then
+            cp "$data_file" "$HARNESS_TARGET/data/"
+            info "  Installed: $data_name"
+        else
+            info "  Data file exists (skipping): $data_name"
+        fi
+    fi
+done
+ok "Runtime data files installed"
+
+# ─── Copy dashboard ───────────────────────────────────────────────
+
+info "Installing dashboard..."
+for dashboard_file in "$TEMPLATES_DIR/.harness/dashboard/"*; do
+    if [ -f "$dashboard_file" ]; then
+        dashboard_name="$(basename "$dashboard_file")"
+        if [ ! -f "$HARNESS_TARGET/dashboard/$dashboard_name" ]; then
+            cp "$dashboard_file" "$HARNESS_TARGET/dashboard/"
+            info "  Installed: $dashboard_name"
+        else
+            info "  Dashboard file exists (skipping): $dashboard_name"
+        fi
+    fi
+done
+ok "Dashboard installed"
 
 # ─── Copy memory READMEs ─────────────────────────────────────────
 
@@ -274,6 +308,8 @@ echo "    .harness/agents/       — $(ls "$HARNESS_TARGET/agents/"*.md 2>/dev/n
 echo "    .harness/skills/       — $(ls -d "$HARNESS_TARGET/skills/"*/ 2>/dev/null | wc -l | xargs) skills"
 echo "    .harness/hooks/        — $(ls "$HARNESS_TARGET/hooks/"*.md 2>/dev/null | wc -l | xargs) hooks"
 echo "    .harness/memory/       — shared + local directories"
+echo "    .harness/data/         — runtime data files"
+echo "    .harness/dashboard/    — observability dashboard"
 echo "    .claude/               — Claude Code adapter"
 echo "    opencode.json          — OpenCode adapter"
 if $ENABLE_CURSOR; then
@@ -287,4 +323,5 @@ echo "  Next steps:"
 echo "    1. Fill in .harness/project-context.md"
 echo "    2. Run ./scripts/doctor.sh $TARGET_PROJECT"
 echo "    3. Open the project with your AI agent"
+echo "    4. View dashboard: ./scripts/serve-dashboard.sh $TARGET_PROJECT"
 echo ""

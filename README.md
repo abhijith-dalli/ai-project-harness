@@ -21,6 +21,11 @@ Developer Machine
     │   │   ├── shared/               ← committed
     │   │   └── local/                ← gitignored
     │   ├── config/
+    │   ├── data/                     ← runtime observability
+    │   │   ├── executions.jsonl
+    │   │   ├── events.jsonl
+    │   │   └── agent_runs.jsonl
+    │   ├── dashboard/                ← observability UI
     │   └── project-context.md
     │
     ├── .claude/                     ← Claude Code adapter
@@ -83,10 +88,11 @@ Then use Claude Code, Cursor, or OpenCode as normal. The harness is automaticall
 2. Detects Git repository status
 3. Creates `.harness/` directory with all components
 4. Installs skills, agents, hooks, and configuration
-5. Creates project identity and memory scope
-6. Configures supported agent integrations (Claude Code, OpenCode, Cursor)
-7. Preserves existing files (idempotent)
-8. Adds safe `.gitignore` rules
+5. Installs runtime data files and dashboard
+6. Creates project identity and memory scope
+7. Configures supported agent integrations (Claude Code, OpenCode, Cursor)
+8. Preserves existing files (idempotent)
+9. Adds safe `.gitignore` rules
 
 ### Install into an existing project
 
@@ -120,6 +126,14 @@ YourProject/
 │   │   └── local/        # Temporary session context (gitignored)
 │   ├── config/
 │   │   └── harness.yaml  # Harness configuration
+│   ├── data/             # Runtime observability data
+│   │   ├── executions.jsonl
+│   │   ├── events.jsonl
+│   │   └── agent_runs.jsonl
+│   ├── dashboard/        # Observability dashboard UI
+│   │   ├── index.html
+│   │   ├── dashboard.css
+│   │   └── dashboard.js
 │   └── project-context.md
 ├── .claude/              # Claude Code adapter
 ├── .opencode/            # OpenCode adapter
@@ -242,6 +256,54 @@ Task Classification
 | **before-task** | Before starting work on a task | Recall task-specific memory, check project conventions |
 | **after-task** | After completing a task | Save important decisions, lessons, and observations |
 | **before-commit** | Before git commit | Capture commit context, record what changed and why |
+
+### Dashboard
+
+The harness includes an observability dashboard for visualizing harness definitions and runtime activity.
+
+```
+.harness/data/                      ← runtime events recorded by hooks
+    ├── executions.jsonl            # high-level execution info
+    ├── events.jsonl                # chronological runtime events
+    └── agent_runs.jsonl            # individual agent runs
+
+.harness/dashboard/                 ← static HTML/CSS/JS dashboard
+    ├── index.html
+    ├── dashboard.css
+    └── dashboard.js
+```
+
+**Data flow:**
+
+```
+Agents / Skills / Hooks / Memory
+        ↓
+    Hooks record runtime activity
+        ↓
+    .harness/data/*.jsonl
+        ↓
+    dashboard.js reads and visualizes
+        ↓
+    Dashboard UI
+```
+
+**Screens:**
+
+| Screen | What it shows |
+|--------|--------------|
+| **Overview** | KPIs, execution trend, success/failure, recent activity |
+| **Agents** | Agent usage, duration, heatmap, radar chart, skill relationships |
+| **Memory** | Memory lifecycle, growth, type distribution, activity |
+| **Executions** | Execution history table, detail drill-down with timeline |
+| **Hooks & Events** | Configured hooks, event stream, event heatmap |
+| **Analytics** | Executions over time, duration distribution, skill usage, hook frequency |
+
+**To view the dashboard:**
+
+```bash
+./scripts/serve-dashboard.sh /path/to/project
+# Open http://localhost:8080/.harness/dashboard/
+```
 
 ### Provider adapters
 
@@ -411,6 +473,14 @@ Shows: harness version, components, memory status, provider status.
 
 Quick setup: installs harness, runs doctor, verifies memory, prints next steps.
 
+### serve-dashboard.sh
+
+```bash
+./scripts/serve-dashboard.sh /path/to/project
+```
+
+Starts a local HTTP server and opens the observability dashboard at `http://localhost:8080/.harness/dashboard/`.
+
 ---
 
 ## How to Install Into a Local Project
@@ -472,7 +542,7 @@ The updater preserves project memory, context, and customizations.
 ## Day-to-Day Workflow
 
 ```
-Open project → Start AI agent → Harness loads context → Work → Memory saved
+Open project → Start AI agent → Harness loads context → Work → Memory saved → Dashboard tracks activity
 ```
 
 1. Open your project
@@ -480,6 +550,7 @@ Open project → Start AI agent → Harness loads context → Work → Memory sa
 3. The orchestrator classifies your task and selects agents
 4. Memory is recalled before work, saved after work
 5. Important knowledge persists across sessions
+6. View dashboard to monitor execution activity and agent performance
 
 ---
 
@@ -539,6 +610,9 @@ See `docs/upstream-adaptations.md` for detailed attribution.
 
 # Status
 ./scripts/status.sh /path/to/project
+
+# Dashboard
+./scripts/serve-dashboard.sh /path/to/project
 
 # Update
 cd ai-project-harness && git pull

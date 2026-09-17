@@ -41,6 +41,33 @@ Did this task produce durable knowledge?
 | Lesson | Bug fix insight, mistake learned | `shared/lessons/` |
 | Observation | Code pattern, behavior discovered | `shared/observations/` |
 
+## Runtime Recording
+
+Record these events to `.harness/data/events.jsonl` by appending JSON lines:
+
+```json
+{"timestamp": "<ISO-8601>", "event": "HOOK_STARTED", "hook": "after-task", "execution_id": "<if available>"}
+{"timestamp": "<ISO-8601>", "event": "HOOK_COMPLETED", "hook": "after-task", "execution_id": "<if available>"}
+```
+
+If memory was saved, also record:
+
+```json
+{"timestamp": "<ISO-8601>", "event": "MEMORY_CREATED", "memory_type": "<decision|lesson|observation>", "execution_id": "<if available>"}
+```
+
+If the task completed successfully:
+
+```json
+{"timestamp": "<ISO-8601>", "event": "TASK_COMPLETED", "task": "<task description>", "execution_id": "<if available>"}
+```
+
+If the task failed:
+
+```json
+{"timestamp": "<ISO-8601>", "event": "TASK_FAILED", "task": "<task description>", "error": "<error description>", "execution_id": "<if available>"}
+```
+
 ## What NOT to Save
 
 - Passwords, API keys, tokens
