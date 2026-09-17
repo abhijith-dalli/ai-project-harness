@@ -20,6 +20,17 @@
 | Cursor | `beforeSubmitPrompt` |
 | Codex | `PreToolUse` |
 
+## Runtime Recording
+
+Record these events to `.harness/data/events.jsonl` by appending JSON lines:
+
+```json
+{"timestamp": "<ISO-8601>", "event": "HOOK_STARTED", "hook": "before-task", "execution_id": "<if available>"}
+{"timestamp": "<ISO-8601>", "event": "HOOK_COMPLETED", "hook": "before-task", "execution_id": "<if available>"}
+{"timestamp": "<ISO-8601>", "event": "TASK_STARTED", "task": "<task description>", "execution_id": "<if available>", "session_id": "<if available>"}
+{"timestamp": "<ISO-8601>", "event": "MEMORY_RECALLED", "execution_id": "<if available>"}
+```
+
 ## Memory Recall Strategy
 
 ```yaml

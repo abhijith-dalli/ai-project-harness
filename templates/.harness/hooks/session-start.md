@@ -20,6 +20,14 @@
 | Cursor | `sessionStart` |
 | Codex | `SessionStart` |
 
+## Runtime Recording
+
+Record this event to `.harness/data/events.jsonl` by appending a JSON line:
+
+```json
+{"timestamp": "<ISO-8601>", "event": "SESSION_STARTED", "execution_id": "<if available>", "session_id": "<if available>"}
+```
+
 ## Implementation
 
 ```bash
@@ -38,4 +46,10 @@ MEMORY_DIR="$HARNESS_DIR/memory/shared"
 if [ -d "$MEMORY_DIR" ]; then
   echo "Project memory available at $MEMORY_DIR"
 fi
+
+# Record session start event
+DATA_DIR="$HARNESS_DIR/data"
+mkdir -p "$DATA_DIR"
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+echo "{\"timestamp\":\"$TIMESTAMP\",\"event\":\"SESSION_STARTED\"}" >> "$DATA_DIR/events.jsonl"
 ```

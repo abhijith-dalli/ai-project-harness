@@ -28,6 +28,27 @@ npm run lint       # or ruff, clippy, golint
 npm run typecheck  # or mypy, tsc --noEmit
 ```
 
+## Runtime Recording
+
+Record these events to `.harness/data/events.jsonl` by appending JSON lines:
+
+```json
+{"timestamp": "<ISO-8601>", "event": "HOOK_STARTED", "hook": "before-commit", "execution_id": "<if available>"}
+{"timestamp": "<ISO-8601>", "event": "VERIFICATION", "execution_id": "<if available>"}
+```
+
+If verification passes and commit proceeds:
+
+```json
+{"timestamp": "<ISO-8601>", "event": "COMMIT", "execution_id": "<if available>"}
+```
+
+If verification fails:
+
+```json
+{"timestamp": "<ISO-8601>", "event": "HOOK_FAILED", "hook": "before-commit", "error": "<error description>", "execution_id": "<if available>"}
+```
+
 ## Security Check
 
 Ensure these are NOT in the diff:
