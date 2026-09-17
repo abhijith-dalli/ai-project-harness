@@ -101,6 +101,33 @@ ok "Hooks updated"
 
 # ─── Update provider adapters ────────────────────────────────────
 
+# ─── Update dashboard (always overwrite — UI is harness-owned) ───
+
+info "Updating dashboard..."
+mkdir -p "$HARNESS_TARGET/dashboard"
+for dashboard_file in "$TEMPLATES_DIR/.harness/dashboard/"*; do
+    if [ -f "$dashboard_file" ]; then
+        dashboard_name="$(basename "$dashboard_file")"
+        cp "$dashboard_file" "$HARNESS_TARGET/dashboard/"
+        info "  Updated: $dashboard_name"
+    fi
+done
+ok "Dashboard updated"
+
+# ─── Update data files (always overwrite — template data) ────────
+
+info "Updating data files..."
+for data_file in "$TEMPLATES_DIR/.harness/data/"*.jsonl; do
+    if [ -f "$data_file" ]; then
+        data_name="$(basename "$data_file")"
+        cp "$data_file" "$HARNESS_TARGET/data/"
+        info "  Updated: $data_name"
+    fi
+done
+ok "Data files updated"
+
+# ─── Update provider adapters ────────────────────────────────────
+
 info "Updating provider adapters..."
 
 # Claude Code

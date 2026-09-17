@@ -24,6 +24,52 @@
   const chartInstances = {};
   let currentSection = 'overview';
 
+  // ── Theme ──────────────────────────────────────────────────────────────
+  function initTheme() {
+    const saved = localStorage.getItem('harness-theme') || 'dark';
+    setTheme(saved);
+  }
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('harness-theme', theme);
+    const icon = document.querySelector('#themeToggle i');
+    if (icon) {
+      icon.className = theme === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
+    }
+    document.querySelector('meta[name="theme-color"]')?.setAttribute(
+      'content', theme === 'dark' ? '#0b0d17' : '#f0f2f8'
+    );
+    Object.values(chartInstances).forEach(chart => {
+      chart.update();
+    });
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    setTheme(current === 'dark' ? 'light' : 'dark');
+  }
+
+  // ── Tab Persistence ────────────────────────────────────────────────────
+  function getSavedSection() {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && isValidSection(hash)) return hash;
+    const saved = localStorage.getItem('harness-active-tab');
+    if (saved && isValidSection(saved)) return saved;
+    return 'overview';
+  }
+
+  function saveSection(section) {
+    localStorage.setItem('harness-active-tab', section);
+    if (section !== 'execution-detail') {
+      window.history.replaceState(null, '', '#' + section);
+    }
+  }
+
+  function isValidSection(name) {
+    return ['overview', 'agents', 'memory', 'executions', 'hooks-events', 'analytics', 'execution-detail'].includes(name);
+  }
+
   // ── JSONL Loader ────────────────────────────────────────────────────────
   async function loadJSONL(path) {
     try {
@@ -65,7 +111,6 @@
   async function loadHarnessDefinitions() {
     const base = '../';
 
-    // Agents
     const agentFiles = [
       'orchestrator', 'planner', 'implementer', 'researcher',
       'debugger', 'explorer', 'reviewer'
@@ -86,7 +131,6 @@
       } catch { /* skip */ }
     }
 
-    // Skills
     const skillDirs = [
       'brainstorming', 'codebase-exploration', 'context-management',
       'dispatching-parallel-agents', 'executing-plans', 'git-workflow',
@@ -110,7 +154,6 @@
       } catch { /* skip */ }
     }
 
-    // Hooks
     const hookFiles = ['session-start', 'before-task', 'after-task', 'before-commit'];
     for (const name of hookFiles) {
       try {
@@ -128,7 +171,6 @@
       } catch { /* skip */ }
     }
 
-    // Memory
     const memoryDirs = ['decisions', 'lessons', 'observations', 'project'];
     for (const dir of memoryDirs) {
       try {
@@ -279,7 +321,7 @@
 
     let avgDuration = 0;
     const durations = fe.executions.filter(e => e.started_at && e.completed_at)
-      .map(e => new Date(e.completed_at) - new Date(e.started_at));
+      .map(e => Math.abs(new Date(e.completed_at) - new Date(e.started_at)));
     if (durations.length) avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
 
     return [
@@ -355,7 +397,7 @@
     const running = fe.executions.filter(e => e.status === 'running').length;
 
     const durations = fe.executions.filter(e => e.started_at && e.completed_at)
-      .map(e => new Date(e.completed_at) - new Date(e.started_at));
+      .map(e => Math.abs(new Date(e.completed_at) - new Date(e.started_at)));
     const avgDuration = durations.length ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
 
     return { total, succeeded, failed, running, avgDuration };
@@ -452,15 +494,27 @@
     return chartInstances[id];
   }
 
-  const chartDefaults = {
-    color: '#8b8fa3',
-    borderColor: '#2a2d3e',
-    font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' }
-  };
+  function truncate(str, len) {
+    if (!str) return '';
+    return str.length > len ? str.slice(0, len) + '...' : str;
+  }
+
+  function getChartColors() {
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    return {
+      grid: isDark ? '#1e2240' : '#e2e5f0',
+      tick: isDark ? '#8890b5' : '#5a6080',
+      label: isDark ? '#8890b5' : '#5a6080',
+      text: isDark ? '#e8eaf6' : '#1a1d35',
+      cardBg: isDark ? '#161a2e' : '#ffffff'
+    };
+  }
 
   // ── Navigation ──────────────────────────────────────────────────────────
   function navigateTo(section) {
     currentSection = section;
+    saveSection(section);
+
     document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
       item.classList.toggle('active', item.dataset.section === section);
     });
@@ -469,6 +523,7 @@
     });
     document.getElementById('pageTitle').textContent =
       section === 'hooks-events' ? 'Hooks & Events' :
+      section === 'execution-detail' ? 'Execution Detail' :
       section.charAt(0).toUpperCase() + section.slice(1).replace('-', ' ');
 
     renderSection(section);
@@ -508,6 +563,7 @@
     const sorted = Object.entries(dayMap).sort((a, b) => new Date(a[0]) - new Date(b[0]));
     const labels = sorted.map(s => new Date(s[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     const values = sorted.map(s => s[1]);
+    const c = getChartColors();
 
     createChart('executionTrendChart', {
       type: 'line',
@@ -516,19 +572,24 @@
         datasets: [{
           label: 'Executions',
           data: values,
-          borderColor: '#4f8cff',
-          backgroundColor: 'rgba(79,140,255,0.1)',
+          borderColor: '#5b9cff',
+          backgroundColor: 'rgba(91,156,255,0.08)',
           fill: true,
-          tension: 0.3,
-          pointRadius: 3
+          tension: 0.4,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#5b9cff',
+          pointBorderColor: c.cardBg,
+          pointBorderWidth: 2,
+          borderWidth: 2.5
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3', font: { size: 10 } } },
-          y: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3', stepSize: 1 }, beginAtZero: true }
+          x: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick, font: { size: 10 } } },
+          y: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick, stepSize: 1 }, beginAtZero: true }
         }
       }
     });
@@ -538,6 +599,7 @@
     const success = fe.executions.filter(e => e.status === 'success').length;
     const failed = fe.executions.filter(e => e.status === 'failed').length;
     const other = fe.executions.length - success - failed;
+    const c = getChartColors();
 
     createChart('successFailureChart', {
       type: 'doughnut',
@@ -545,15 +607,16 @@
         labels: ['Success', 'Failed', 'Other'],
         datasets: [{
           data: [success, failed, other],
-          backgroundColor: ['#34d399', '#f87171', '#5a5e72'],
-          borderColor: '#1a1d2e',
-          borderWidth: 2
+          backgroundColor: ['#36d9a0', '#ff6b7a', '#505580'],
+          borderColor: c.cardBg,
+          borderWidth: 3,
+          hoverOffset: 6
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { color: '#8b8fa3', padding: 12 } } },
-        cutout: '65%'
+        plugins: { legend: { position: 'bottom', labels: { color: c.label, padding: 14, usePointStyle: true, pointStyle: 'circle' } } },
+        cutout: '68%'
       }
     });
   }
@@ -562,6 +625,7 @@
     const usage = {};
     fe.agentRuns.forEach(r => { usage[r.agent] = (usage[r.agent] || 0) + 1; });
     const sorted = Object.entries(usage).sort((a, b) => b[1] - a[1]);
+    const c = getChartColors();
 
     createChart('agentUsageSummaryChart', {
       type: 'bar',
@@ -570,8 +634,11 @@
         datasets: [{
           label: 'Runs',
           data: sorted.map(s => s[1]),
-          backgroundColor: '#4f8cff',
-          borderRadius: 4
+          backgroundColor: 'rgba(91,156,255,0.6)',
+          borderColor: '#5b9cff',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false
         }]
       },
       options: {
@@ -579,8 +646,8 @@
         indexAxis: 'y',
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3' }, beginAtZero: true },
-          y: { grid: { display: false }, ticks: { color: '#e4e6f0', font: { size: 11 } } }
+          x: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick }, beginAtZero: true },
+          y: { grid: { display: false }, ticks: { color: c.text, font: { size: 11, weight: '500' } } }
         }
       }
     });
@@ -611,7 +678,7 @@
     }
     tbody.innerHTML = recent.map(e => {
       const dur = e.started_at && e.completed_at
-        ? formatDuration(new Date(e.completed_at) - new Date(e.started_at)) : '—';
+        ? formatDuration(Math.abs(new Date(e.completed_at) - new Date(e.started_at))) : '—';
       return `<tr>
         <td><code>${e.execution_id || '—'}</code></td>
         <td>${truncate(e.task, 40)}</td>
@@ -649,22 +716,23 @@
     const labels = agents.filter(a => a.runs > 0).map(a => a.name);
     const successData = agents.filter(a => a.runs > 0).map(a => a.successes);
     const failData = agents.filter(a => a.runs > 0).map(a => a.failures);
+    const c = getChartColors();
 
     createChart('agentSuccessFailureChart', {
       type: 'bar',
       data: {
         labels,
         datasets: [
-          { label: 'Success', data: successData, backgroundColor: '#34d399', borderRadius: 4 },
-          { label: 'Failed', data: failData, backgroundColor: '#f87171', borderRadius: 4 }
+          { label: 'Success', data: successData, backgroundColor: 'rgba(54,217,160,0.7)', borderColor: '#36d9a0', borderWidth: 1, borderRadius: 5, borderSkipped: false },
+          { label: 'Failed', data: failData, backgroundColor: 'rgba(255,107,122,0.7)', borderColor: '#ff6b7a', borderWidth: 1, borderRadius: 5, borderSkipped: false }
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#8b8fa3' } } },
+        plugins: { legend: { labels: { color: c.label, usePointStyle: true, pointStyle: 'circle', padding: 16 } } },
         scales: {
-          x: { grid: { display: false }, ticks: { color: '#e4e6f0', font: { size: 10 } } },
-          y: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3' }, beginAtZero: true }
+          x: { grid: { display: false }, ticks: { color: c.text, font: { size: 10 } } },
+          y: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick }, beginAtZero: true }
         }
       }
     });
@@ -672,6 +740,7 @@
 
   function renderAgentDuration(fe, agents) {
     const filtered = agents.filter(a => a.avgDuration > 0);
+    const c = getChartColors();
 
     createChart('agentDurationChart', {
       type: 'bar',
@@ -680,16 +749,19 @@
         datasets: [{
           label: 'Avg Duration (ms)',
           data: filtered.map(a => a.avgDuration),
-          backgroundColor: '#a78bfa',
-          borderRadius: 4
+          backgroundColor: 'rgba(180,154,255,0.6)',
+          borderColor: '#b49aff',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { color: '#e4e6f0', font: { size: 10 } } },
-          y: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3' }, beginAtZero: true }
+          x: { grid: { display: false }, ticks: { color: c.text, font: { size: 10 } } },
+          y: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick }, beginAtZero: true }
         }
       }
     });
@@ -698,6 +770,7 @@
   function renderAgentHeatmap(fe, agents) {
     const container = document.getElementById('agentHeatmap');
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const c = getChartColors();
 
     const grid = {};
     agents.forEach(a => { grid[a.name] = new Array(7).fill(0); });
@@ -710,7 +783,6 @@
     });
 
     const maxVal = Math.max(1, ...Object.values(grid).flat());
-    const cols = dayNames.length + 1;
 
     let html = `<div class="heatmap-grid" style="grid-template-columns: 100px repeat(${dayNames.length}, 28px);">`;
     html += '<div></div>';
@@ -720,8 +792,8 @@
       html += `<div class="heatmap-label">${agent}</div>`;
       counts.forEach(v => {
         const intensity = v / maxVal;
-        const bg = v === 0 ? 'rgba(42,45,62,0.5)' :
-          `rgba(79,140,255,${0.15 + intensity * 0.6})`;
+        const bg = v === 0 ? (c.grid + '40') :
+          `rgba(91,156,255,${0.15 + intensity * 0.6})`;
         html += `<div class="heatmap-cell" style="background:${bg}" title="${agent}: ${v}">${v || ''}</div>`;
       });
     });
@@ -739,23 +811,25 @@
 
     const maxRuns = Math.max(1, ...activeAgents.map(a => a.runs));
     const maxDur = Math.max(1, ...activeAgents.map(a => a.avgDuration));
+    const c = getChartColors();
+    const colors = ['#5b9cff', '#36d9a0', '#b49aff', '#ffc542', '#3dd8f5'];
 
-    const datasets = activeAgents.slice(0, 5).map((a, i) => {
-      const colors = ['#4f8cff', '#34d399', '#a78bfa', '#fbbf24', '#22d3ee'];
-      return {
-        label: a.name,
-        data: [
-          (a.runs / maxRuns) * 100,
-          a.runs ? (a.successes / a.runs) * 100 : 0,
-          Math.max(0, 100 - (a.avgDuration / maxDur) * 100),
-          Math.min(100, a.skills.length * 25),
-          Math.min(100, a.runs * 10)
-        ],
-        borderColor: colors[i],
-        backgroundColor: colors[i] + '20',
-        pointBackgroundColor: colors[i]
-      };
-    });
+    const datasets = activeAgents.slice(0, 5).map((a, i) => ({
+      label: a.name,
+      data: [
+        (a.runs / maxRuns) * 100,
+        a.runs ? (a.successes / a.runs) * 100 : 0,
+        Math.max(0, 100 - (a.avgDuration / maxDur) * 100),
+        Math.min(100, a.skills.length * 25),
+        Math.min(100, a.runs * 10)
+      ],
+      borderColor: colors[i],
+      backgroundColor: colors[i] + '18',
+      pointBackgroundColor: colors[i],
+      pointBorderColor: c.cardBg,
+      pointBorderWidth: 2,
+      borderWidth: 2
+    }));
 
     createChart('agentRadarChart', {
       type: 'radar',
@@ -765,12 +839,12 @@
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#8b8fa3' } } },
+        plugins: { legend: { labels: { color: c.label, usePointStyle: true, pointStyle: 'circle', padding: 14 } } },
         scales: {
           r: {
-            grid: { color: '#2a2d3e' },
-            angleLines: { color: '#2a2d3e' },
-            pointLabels: { color: '#8b8fa3', font: { size: 10 } },
+            grid: { color: c.grid },
+            angleLines: { color: c.grid },
+            pointLabels: { color: c.tick, font: { size: 10 } },
             ticks: { display: false },
             suggestedMin: 0, suggestedMax: 100
           }
@@ -836,21 +910,23 @@
   }
 
   function renderMemoryLifecycle(m) {
+    const c = getChartColors();
     createChart('memoryLifecycleChart', {
       type: 'doughnut',
       data: {
         labels: ['Active', 'Superseded', 'Deprecated', 'Archived'],
         datasets: [{
           data: [m.active, m.superseded, m.deprecated, m.archived],
-          backgroundColor: ['#34d399', '#fbbf24', '#f87171', '#5a5e72'],
-          borderColor: '#1a1d2e',
-          borderWidth: 2
+          backgroundColor: ['#36d9a0', '#ffc542', '#ff6b7a', '#505580'],
+          borderColor: c.cardBg,
+          borderWidth: 3,
+          hoverOffset: 6
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { color: '#8b8fa3', padding: 10 } } },
-        cutout: '60%'
+        plugins: { legend: { position: 'bottom', labels: { color: c.label, padding: 12, usePointStyle: true, pointStyle: 'circle' } } },
+        cutout: '62%'
       }
     });
   }
@@ -868,6 +944,7 @@
     let cumulative = 0;
     const labels = sorted.map(s => new Date(s[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     const values = sorted.map(s => { cumulative += s[1]; return cumulative; });
+    const c = getChartColors();
 
     createChart('memoryGrowthChart', {
       type: 'line',
@@ -876,19 +953,24 @@
         datasets: [{
           label: 'Memory Count',
           data: values,
-          borderColor: '#22d3ee',
-          backgroundColor: 'rgba(34,211,238,0.1)',
+          borderColor: '#3dd8f5',
+          backgroundColor: 'rgba(61,216,245,0.08)',
           fill: true,
-          tension: 0.3,
-          pointRadius: 3
+          tension: 0.4,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#3dd8f5',
+          pointBorderColor: c.cardBg,
+          pointBorderWidth: 2,
+          borderWidth: 2.5
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3', font: { size: 10 } } },
-          y: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3' }, beginAtZero: true }
+          x: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick, font: { size: 10 } } },
+          y: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick }, beginAtZero: true }
         }
       }
     });
@@ -897,6 +979,7 @@
   function renderMemoryType(m) {
     const types = {};
     data.memory.forEach(mem => { types[mem.type] = (types[mem.type] || 0) + 1; });
+    const c = getChartColors();
 
     createChart('memoryTypeChart', {
       type: 'bar',
@@ -905,16 +988,19 @@
         datasets: [{
           label: 'Count',
           data: Object.values(types),
-          backgroundColor: ['#4f8cff', '#34d399', '#a78bfa', '#fbbf24'],
-          borderRadius: 4
+          backgroundColor: ['rgba(91,156,255,0.6)', 'rgba(54,217,160,0.6)', 'rgba(180,154,255,0.6)', 'rgba(255,197,66,0.6)'],
+          borderColor: ['#5b9cff', '#36d9a0', '#b49aff', '#ffc542'],
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { color: '#e4e6f0' } },
-          y: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3' }, beginAtZero: true }
+          x: { grid: { display: false }, ticks: { color: c.text } },
+          y: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick }, beginAtZero: true }
         }
       }
     });
@@ -931,6 +1017,7 @@
     const sorted = Object.entries(dayMap).sort((a, b) => new Date(a[0]) - new Date(b[0]));
     const labels = sorted.map(s => new Date(s[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     const values = sorted.map(s => s[1]);
+    const c = getChartColors();
 
     createChart('memoryActivityChart', {
       type: 'bar',
@@ -939,16 +1026,19 @@
         datasets: [{
           label: 'Memory Created',
           data: values,
-          backgroundColor: '#22d3ee',
-          borderRadius: 4
+          backgroundColor: 'rgba(61,216,245,0.6)',
+          borderColor: '#3dd8f5',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3', font: { size: 10 } } },
-          y: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3' }, beginAtZero: true }
+          x: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick, font: { size: 10 } } },
+          y: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick }, beginAtZero: true }
         }
       }
     });
@@ -991,7 +1081,7 @@
     }
     tbody.innerHTML = fe.executions.sort((a, b) => new Date(b.started_at) - new Date(a.started_at)).map(e => {
       const dur = e.started_at && e.completed_at
-        ? formatDuration(new Date(e.completed_at) - new Date(e.started_at)) : '—';
+        ? formatDuration(Math.abs(new Date(e.completed_at) - new Date(e.started_at))) : '—';
       return `<tr>
         <td><code>${e.execution_id || '—'}</code></td>
         <td>${truncate(e.task, 50)}</td>
@@ -1133,6 +1223,7 @@
   function renderEventHeatmap(fe) {
     const container = document.getElementById('eventHeatmap');
     const hours = Array.from({ length: 24 }, (_, i) => i);
+    const c = getChartColors();
 
     const eventTypes = [...new Set(fe.events.map(e => e.event))].slice(0, 10);
     const grid = {};
@@ -1156,8 +1247,8 @@
       html += `<div class="heatmap-label" title="${type}">${type}</div>`;
       grid[type].forEach(v => {
         const intensity = v / maxVal;
-        const bg = v === 0 ? 'rgba(42,45,62,0.5)' :
-          `rgba(79,140,255,${0.15 + intensity * 0.6})`;
+        const bg = v === 0 ? (c.grid + '40') :
+          `rgba(91,156,255,${0.15 + intensity * 0.6})`;
         html += `<div class="heatmap-cell" style="background:${bg}" title="${type} @ ${v}">${v || ''}</div>`;
       });
     });
@@ -1202,22 +1293,23 @@
 
     const sorted = Object.entries(dayMap).sort((a, b) => new Date(a[0]) - new Date(b[0]));
     const labels = sorted.map(s => new Date(s[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    const c = getChartColors();
 
     createChart('analyticsExecutionsOverTime', {
       type: 'line',
       data: {
         labels,
         datasets: [
-          { label: 'Success', data: sorted.map(s => s[1].success), borderColor: '#34d399', tension: 0.3, pointRadius: 2 },
-          { label: 'Failed', data: sorted.map(s => s[1].failed), borderColor: '#f87171', tension: 0.3, pointRadius: 2 }
+          { label: 'Success', data: sorted.map(s => s[1].success), borderColor: '#36d9a0', tension: 0.4, pointRadius: 3, borderWidth: 2 },
+          { label: 'Failed', data: sorted.map(s => s[1].failed), borderColor: '#ff6b7a', tension: 0.4, pointRadius: 3, borderWidth: 2 }
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#8b8fa3' } } },
+        plugins: { legend: { labels: { color: c.label, usePointStyle: true, pointStyle: 'circle', padding: 16 } } },
         scales: {
-          x: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3', font: { size: 10 } } },
-          y: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3' }, beginAtZero: true }
+          x: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick, font: { size: 10 } } },
+          y: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick }, beginAtZero: true }
         }
       }
     });
@@ -1226,7 +1318,7 @@
   function renderAnalyticsDurationDist(fe) {
     const durations = fe.executions
       .filter(e => e.started_at && e.completed_at)
-      .map(e => (new Date(e.completed_at) - new Date(e.started_at)) / 1000);
+      .map(e => Math.abs(new Date(e.completed_at) - new Date(e.started_at)) / 1000);
 
     const buckets = [0, 10, 30, 60, 120, 300, 600, Infinity];
     const labels = ['<10s', '10-30s', '30-60s', '1-2m', '2-5m', '5-10m', '10m+'];
@@ -1238,6 +1330,8 @@
       }
     });
 
+    const c = getChartColors();
+
     createChart('analyticsDurationDist', {
       type: 'bar',
       data: {
@@ -1245,16 +1339,19 @@
         datasets: [{
           label: 'Executions',
           data: counts,
-          backgroundColor: '#4f8cff',
-          borderRadius: 4
+          backgroundColor: 'rgba(91,156,255,0.6)',
+          borderColor: '#5b9cff',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { color: '#e4e6f0', font: { size: 10 } } },
-          y: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3' }, beginAtZero: true }
+          x: { grid: { display: false }, ticks: { color: c.text, font: { size: 10 } } },
+          y: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick }, beginAtZero: true }
         }
       }
     });
@@ -1266,6 +1363,7 @@
       if (e.skill) skillMap[e.skill] = (skillMap[e.skill] || 0) + 1;
     });
     const sorted = Object.entries(skillMap).sort((a, b) => b[1] - a[1]);
+    const c = getChartColors();
 
     createChart('analyticsSkillUsage', {
       type: 'bar',
@@ -1274,8 +1372,11 @@
         datasets: [{
           label: 'Times Used',
           data: sorted.map(s => s[1]),
-          backgroundColor: '#a78bfa',
-          borderRadius: 4
+          backgroundColor: 'rgba(180,154,255,0.6)',
+          borderColor: '#b49aff',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false
         }]
       },
       options: {
@@ -1283,8 +1384,8 @@
         indexAxis: 'y',
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3' }, beginAtZero: true },
-          y: { grid: { display: false }, ticks: { color: '#e4e6f0', font: { size: 10 } } }
+          x: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick }, beginAtZero: true },
+          y: { grid: { display: false }, ticks: { color: c.text, font: { size: 10 } } }
         }
       }
     });
@@ -1297,6 +1398,7 @@
       hookMap[name] = (hookMap[name] || 0) + 1;
     });
     const sorted = Object.entries(hookMap).sort((a, b) => b[1] - a[1]);
+    const c = getChartColors();
 
     createChart('analyticsHookFreq', {
       type: 'bar',
@@ -1305,16 +1407,19 @@
         datasets: [{
           label: 'Events',
           data: sorted.map(s => s[1]),
-          backgroundColor: '#fbbf24',
-          borderRadius: 4
+          backgroundColor: 'rgba(255,197,66,0.6)',
+          borderColor: '#ffc542',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { color: '#e4e6f0', font: { size: 10 } } },
-          y: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3' }, beginAtZero: true }
+          x: { grid: { display: false }, ticks: { color: c.text, font: { size: 10 } } },
+          y: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick }, beginAtZero: true }
         }
       }
     });
@@ -1328,6 +1433,7 @@
       dayMap[d] = (dayMap[d] || 0) + 1;
     });
     const sorted = Object.entries(dayMap).sort((a, b) => new Date(a[0]) - new Date(b[0]));
+    const c = getChartColors();
 
     createChart('analyticsRetryActivity', {
       type: 'bar',
@@ -1336,16 +1442,19 @@
         datasets: [{
           label: 'Retries',
           data: sorted.map(s => s[1]),
-          backgroundColor: '#f87171',
-          borderRadius: 4
+          backgroundColor: 'rgba(255,107,122,0.6)',
+          borderColor: '#ff6b7a',
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3', font: { size: 10 } } },
-          y: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3' }, beginAtZero: true }
+          x: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick, font: { size: 10 } } },
+          y: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick }, beginAtZero: true }
         }
       }
     });
@@ -1360,6 +1469,7 @@
     const sorted = Object.entries(dayMap).sort((a, b) => new Date(a[0]) - new Date(b[0]));
     let cumulative = 0;
     const values = sorted.map(s => { cumulative += s[1]; return cumulative; });
+    const c = getChartColors();
 
     createChart('analyticsMemoryGrowth', {
       type: 'line',
@@ -1368,28 +1478,27 @@
         datasets: [{
           label: 'Memory Records',
           data: values,
-          borderColor: '#22d3ee',
-          backgroundColor: 'rgba(34,211,238,0.1)',
+          borderColor: '#3dd8f5',
+          backgroundColor: 'rgba(61,216,245,0.08)',
           fill: true,
-          tension: 0.3,
-          pointRadius: 3
+          tension: 0.4,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#3dd8f5',
+          pointBorderColor: c.cardBg,
+          pointBorderWidth: 2,
+          borderWidth: 2.5
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3', font: { size: 10 } } },
-          y: { grid: { color: '#2a2d3e' }, ticks: { color: '#8b8fa3' }, beginAtZero: true }
+          x: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick, font: { size: 10 } } },
+          y: { grid: { color: c.grid, drawBorder: false }, ticks: { color: c.tick }, beginAtZero: true }
         }
       }
     });
-  }
-
-  // ── Truncate Helper ─────────────────────────────────────────────────────
-  function truncate(str, len) {
-    if (!str) return '';
-    return str.length > len ? str.slice(0, len) + '...' : str;
   }
 
   // ── Event Listeners ─────────────────────────────────────────────────────
@@ -1407,13 +1516,15 @@
       document.getElementById('sidebar').classList.toggle('open');
     });
 
+    // Theme toggle
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
     // Refresh
     document.getElementById('refreshBtn').addEventListener('click', async () => {
       const btn = document.getElementById('refreshBtn');
       btn.disabled = true;
       btn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Loading...';
 
-      // Reset data
       data.executions = [];
       data.events = [];
       data.agentRuns = [];
@@ -1434,7 +1545,15 @@
       filters.startDate = e.target.value || null;
       renderSection(currentSection);
     });
+    document.getElementById('filterStartDate').addEventListener('input', (e) => {
+      filters.startDate = e.target.value || null;
+      renderSection(currentSection);
+    });
     document.getElementById('filterEndDate').addEventListener('change', (e) => {
+      filters.endDate = e.target.value || null;
+      renderSection(currentSection);
+    });
+    document.getElementById('filterEndDate').addEventListener('input', (e) => {
       filters.endDate = e.target.value || null;
       renderSection(currentSection);
     });
@@ -1488,13 +1607,23 @@
       filters.eventType = e.target.value;
       renderSection(currentSection);
     });
+
+    // Hash change (browser back/forward)
+    window.addEventListener('hashchange', () => {
+      const section = window.location.hash.replace('#', '');
+      if (section && isValidSection(section) && section !== currentSection) {
+        navigateTo(section);
+      }
+    });
   }
 
   // ── Initialize ──────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', async () => {
+    initTheme();
     initEventListeners();
     await loadAllData();
-    renderSection('overview');
+    const initialSection = getSavedSection();
+    navigateTo(initialSection);
   });
 
 })();

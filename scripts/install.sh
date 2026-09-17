@@ -106,50 +106,38 @@ mkdir -p "$HARNESS_TARGET/memory/local/sessions"
 
 ok "Directory structure created"
 
-# ─── Copy agents ──────────────────────────────────────────────────
+# ─── Copy agents (always overwrite — harness-owned) ──────────────
 
 info "Installing agents..."
 for agent_file in "$TEMPLATES_DIR/.harness/agents/"*.md; do
     if [ -f "$agent_file" ]; then
         agent_name="$(basename "$agent_file")"
-        if [ ! -f "$HARNESS_TARGET/agents/$agent_name" ]; then
-            cp "$agent_file" "$HARNESS_TARGET/agents/"
-            info "  Installed agent: $agent_name"
-        else
-            info "  Agent exists (skipping): $agent_name"
-        fi
+        cp "$agent_file" "$HARNESS_TARGET/agents/"
+        info "  Installed agent: $agent_name"
     fi
 done
 ok "Agents installed"
 
-# ─── Copy skills ──────────────────────────────────────────────────
+# ─── Copy skills (always overwrite — harness-owned) ──────────────
 
 info "Installing skills..."
 for skill_dir in "$TEMPLATES_DIR/.harness/skills/"*; do
     if [ -d "$skill_dir" ] && [ -f "$skill_dir/SKILL.md" ]; then
         skill_name="$(basename "$skill_dir")"
-        if [ ! -d "$HARNESS_TARGET/skills/$skill_name" ]; then
-            cp -r "$skill_dir" "$HARNESS_TARGET/skills/"
-            info "  Installed skill: $skill_name"
-        else
-            info "  Skill exists (skipping): $skill_name"
-        fi
+        cp -r "$skill_dir" "$HARNESS_TARGET/skills/"
+        info "  Installed skill: $skill_name"
     fi
 done
 ok "Skills installed"
 
-# ─── Copy hooks ───────────────────────────────────────────────────
+# ─── Copy hooks (always overwrite — harness-owned) ───────────────
 
 info "Installing hooks..."
 for hook_file in "$TEMPLATES_DIR/.harness/hooks/"*.md; do
     if [ -f "$hook_file" ]; then
         hook_name="$(basename "$hook_file")"
-        if [ ! -f "$HARNESS_TARGET/hooks/$hook_name" ]; then
-            cp "$hook_file" "$HARNESS_TARGET/hooks/"
-            info "  Installed hook: $hook_name"
-        else
-            info "  Hook exists (skipping): $hook_name"
-        fi
+        cp "$hook_file" "$HARNESS_TARGET/hooks/"
+        info "  Installed hook: $hook_name"
     fi
 done
 ok "Hooks installed"
@@ -171,34 +159,26 @@ else
     info "  project-context.md exists (skipping)"
 fi
 
-# ─── Copy runtime data files ──────────────────────────────────────
+# ─── Copy runtime data files (always overwrite) ──────────────────
 
 info "Installing runtime data files..."
 for data_file in "$TEMPLATES_DIR/.harness/data/"*.jsonl; do
     if [ -f "$data_file" ]; then
         data_name="$(basename "$data_file")"
-        if [ ! -f "$HARNESS_TARGET/data/$data_name" ]; then
-            cp "$data_file" "$HARNESS_TARGET/data/"
-            info "  Installed: $data_name"
-        else
-            info "  Data file exists (skipping): $data_name"
-        fi
+        cp "$data_file" "$HARNESS_TARGET/data/"
+        info "  Installed: $data_name"
     fi
 done
 ok "Runtime data files installed"
 
-# ─── Copy dashboard ───────────────────────────────────────────────
+# ─── Copy dashboard (always overwrite — UI is harness-owned) ─────
 
 info "Installing dashboard..."
 for dashboard_file in "$TEMPLATES_DIR/.harness/dashboard/"*; do
     if [ -f "$dashboard_file" ]; then
         dashboard_name="$(basename "$dashboard_file")"
-        if [ ! -f "$HARNESS_TARGET/dashboard/$dashboard_name" ]; then
-            cp "$dashboard_file" "$HARNESS_TARGET/dashboard/"
-            info "  Installed: $dashboard_name"
-        else
-            info "  Dashboard file exists (skipping): $dashboard_name"
-        fi
+        cp "$dashboard_file" "$HARNESS_TARGET/dashboard/"
+        info "  Installed: $dashboard_name"
     fi
 done
 ok "Dashboard installed"
@@ -214,14 +194,12 @@ for readme in shared/README.md local/README.md shared/project/README.md shared/d
 done
 ok "Configuration installed"
 
-# ─── Install provider adapters ────────────────────────────────────
+# ─── Install provider adapters (always overwrite) ────────────────
 
 info "Installing provider adapters..."
 
 # Claude Code adapter (always installed)
-if [ ! -d "$TARGET_PROJECT/.claude" ]; then
-    mkdir -p "$TARGET_PROJECT/.claude"
-fi
+mkdir -p "$TARGET_PROJECT/.claude"
 cp "$TEMPLATES_DIR/.claude/settings.json" "$TARGET_PROJECT/.claude/" 2>/dev/null || true
 cp "$TEMPLATES_DIR/.claude/hooks.json" "$TARGET_PROJECT/.claude/" 2>/dev/null || true
 cp "$TEMPLATES_DIR/.claude/CLAUDE.md" "$TARGET_PROJECT/.claude/" 2>/dev/null || true
@@ -235,9 +213,7 @@ ok "  OpenCode adapter installed"
 
 # Cursor adapter (optional)
 if $ENABLE_CURSOR; then
-    if [ ! -d "$TARGET_PROJECT/.cursor" ]; then
-        mkdir -p "$TARGET_PROJECT/.cursor"
-    fi
+    mkdir -p "$TARGET_PROJECT/.cursor"
     cp "$TEMPLATES_DIR/.cursor/mcp.json" "$TARGET_PROJECT/.cursor/" 2>/dev/null || true
     cp "$TEMPLATES_DIR/.cursor/hooks.json" "$TARGET_PROJECT/.cursor/" 2>/dev/null || true
     cp "$TEMPLATES_DIR/.cursor/.cursorrules" "$TARGET_PROJECT/.cursor/" 2>/dev/null || true
@@ -277,6 +253,17 @@ GITIGNORE="$TARGET_PROJECT/.gitignore"
 GITIGNORE_ENTRIES=(
     ".harness/memory/local/"
     ".harness/packs/"
+    ".harness/agents/"
+    ".harness/skills/"
+    ".harness/hooks/"
+    ".harness/data/"
+    ".harness/dashboard/"
+    ".harness/config/"
+    ".claude/"
+    ".opencode/"
+    ".cursor/"
+    ".agents/"
+    "opencode.json"
 )
 
 for entry in "${GITIGNORE_ENTRIES[@]}"; do

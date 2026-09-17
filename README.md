@@ -301,9 +301,35 @@ Agents / Skills / Hooks / Memory
 **To view the dashboard:**
 
 ```bash
+# Start the dashboard server
 ./scripts/serve-dashboard.sh /path/to/project
-# Open http://localhost:8080/.harness/dashboard/
+
+# Then open in your browser:
+# http://localhost:8080/.harness/dashboard/
 ```
+
+**Alternative — Start manually with Python:**
+
+```bash
+cd /path/to/project
+python3 -m http.server 8080
+# Then open http://localhost:8080/.harness/dashboard/
+```
+
+**Alternative — Start manually with Node:**
+
+```bash
+cd /path/to/project
+npx serve -l 8080 .harness/dashboard
+# Then open http://localhost:8080
+```
+
+**Dashboard features:**
+
+- **Dark/Light mode** — Toggle with the theme button in the top bar (persists across sessions)
+- **Tab persistence** — Your active tab is remembered on refresh
+- **Interactive filters** — Filter by date range, provider, agent, status, and event type
+- **6 views** — Overview, Agents, Memory, Executions, Hooks & Events, Analytics
 
 ### Provider adapters
 
@@ -611,8 +637,9 @@ See `docs/upstream-adaptations.md` for detailed attribution.
 # Status
 ./scripts/status.sh /path/to/project
 
-# Dashboard
+# Dashboard — start the server and open in browser
 ./scripts/serve-dashboard.sh /path/to/project
+# → http://localhost:8080/.harness/dashboard/
 
 # Update
 cd ai-project-harness && git pull
