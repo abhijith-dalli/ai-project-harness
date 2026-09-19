@@ -4,7 +4,7 @@ description: >
   Use when a task requires coordination across multiple agents or when task
   complexity is unclear. Classifies task complexity, recalls relevant memory,
   selects the smallest useful agent chain, and coordinates structured handoffs.
-mode: orchestrator
+mode: primary
 ---
 
 # Orchestrator

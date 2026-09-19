@@ -18,10 +18,10 @@ assert_file() {
     local file="$1"
     if [ -f "$file" ]; then
         echo -e "  ${GREEN}✓${NC} $file"
-        ((PASS++))
+        PASS=$((PASS + 1))
     else
         echo -e "  ${RED}✗${NC} $file — MISSING"
-        ((FAIL++))
+        FAIL=$((FAIL + 1))
     fi
 }
 
@@ -29,10 +29,10 @@ assert_dir() {
     local dir="$1"
     if [ -d "$dir" ]; then
         echo -e "  ${GREEN}✓${NC} $dir/"
-        ((PASS++))
+        PASS=$((PASS + 1))
     else
         echo -e "  ${RED}✗${NC} $dir/ — MISSING"
-        ((FAIL++))
+        FAIL=$((FAIL + 1))
     fi
 }
 
@@ -47,7 +47,7 @@ git init -q
 
 echo ""
 echo "Installing harness..."
-bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/TestProject" --enable-cursor 2>/dev/null
+bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/TestProject" --provider opencode 2>/dev/null
 
 echo ""
 echo "Verifying installation..."
@@ -97,17 +97,13 @@ echo "Config:"
 assert_file "$TMPDIR/TestProject/.harness/config/harness.yaml"
 assert_file "$TMPDIR/TestProject/.harness/project-context.md"
 
-# Provider adapters
+# Provider adapter (OpenCode)
 echo ""
-echo "Provider adapters:"
-assert_file "$TMPDIR/TestProject/.claude/settings.json"
-assert_file "$TMPDIR/TestProject/.claude/hooks.json"
-assert_file "$TMPDIR/TestProject/.claude/CLAUDE.md"
-assert_file "$TMPDIR/TestProject/opencode.json"
+echo "Provider adapter (OpenCode):"
 assert_file "$TMPDIR/TestProject/.opencode/AGENTS.md"
-assert_file "$TMPDIR/TestProject/.cursor/mcp.json"
-assert_file "$TMPDIR/TestProject/.cursor/hooks.json"
-assert_file "$TMPDIR/TestProject/.cursor/.cursorrules"
+assert_file "$TMPDIR/TestProject/opencode.json"
+assert_file "$TMPDIR/TestProject/.opencode/plugins/harness-hooks.js"
+assert_file "$TMPDIR/TestProject/.harness/manifest.json"
 
 # Memory READMEs
 echo ""

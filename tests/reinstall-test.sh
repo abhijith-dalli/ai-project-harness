@@ -26,7 +26,7 @@ git init -q
 # First install
 echo ""
 echo "First install..."
-bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/ReinstallTest" 2>/dev/null
+bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/ReinstallTest" --provider opencode 2>/dev/null
 
 # Count files after first install
 FIRST_AGENT_COUNT=$(ls "$TMPDIR/ReinstallTest/.harness/agents/"*.md 2>/dev/null | wc -l | xargs)
@@ -57,7 +57,7 @@ echo "Custom project context" > "$TMPDIR/ReinstallTest/.harness/project-context.
 # Second install
 echo ""
 echo "Second install..."
-bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/ReinstallTest" 2>/dev/null
+bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/ReinstallTest" --provider opencode 2>/dev/null
 
 # Count files after second install
 SECOND_AGENT_COUNT=$(ls "$TMPDIR/ReinstallTest/.harness/agents/"*.md 2>/dev/null | wc -l | xargs)
@@ -71,18 +71,18 @@ echo "Verifying no corruption..."
 
 if [ "$FIRST_AGENT_COUNT" -eq "$SECOND_AGENT_COUNT" ]; then
     echo -e "  ${GREEN}✓${NC} Agent count unchanged ($SECOND_AGENT_COUNT)"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Agent count changed ($FIRST_AGENT_COUNT → $SECOND_AGENT_COUNT)"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 if [ "$FIRST_SKILL_COUNT" -eq "$SECOND_SKILL_COUNT" ]; then
     echo -e "  ${GREEN}✓${NC} Skill count unchanged ($SECOND_SKILL_COUNT)"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Skill count changed ($FIRST_SKILL_COUNT → $SECOND_SKILL_COUNT)"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 # Verify custom data survived
@@ -91,18 +91,18 @@ echo "Verifying custom data preserved..."
 
 if [ -f "$TMPDIR/ReinstallTest/.harness/memory/shared/decisions/001-custom.md" ]; then
     echo -e "  ${GREEN}✓${NC} Custom memory survived reinstallation"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Custom memory lost after reinstallation"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 if grep -q "Custom project context" "$TMPDIR/ReinstallTest/.harness/project-context.md" 2>/dev/null; then
     echo -e "  ${GREEN}✓${NC} Custom project context preserved"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Custom project context lost"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 echo ""

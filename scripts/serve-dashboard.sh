@@ -44,7 +44,7 @@ if command -v python3 &>/dev/null; then
   python3 -m http.server "$PORT"
 elif command -v python &>/dev/null; then
   cd "$PROJECT_DIR"
-  python -m SimpleHTTPServer "$PORT"
+  python -m http.server "$PORT"
 elif command -v npx &>/dev/null; then
   cd "$PROJECT_DIR"
   npx serve -l "$PORT" .harness/dashboard

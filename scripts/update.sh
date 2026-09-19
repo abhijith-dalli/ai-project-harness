@@ -99,8 +99,6 @@ for hook_file in "$TEMPLATES_DIR/.harness/hooks/"*.md; do
 done
 ok "Hooks updated"
 
-# ─── Update provider adapters ────────────────────────────────────
-
 # ─── Update dashboard (always overwrite — UI is harness-owned) ───
 
 info "Updating dashboard..."
@@ -126,55 +124,20 @@ for data_file in "$TEMPLATES_DIR/.harness/data/"*.jsonl; do
 done
 ok "Data files updated"
 
-# ─── Update provider adapters ────────────────────────────────────
+# ─── Update provider adapter ────────────────────────────────────
 
-info "Updating provider adapters..."
-
-# Claude Code
-if [ -d "$TARGET_PROJECT/.claude" ]; then
-    for f in settings.json hooks.json; do
-        src="$TEMPLATES_DIR/.claude/$f"
-        dst="$TARGET_PROJECT/.claude/$f"
-        if [ -f "$src" ]; then
-            if [ -f "$dst" ] && ! diff -q "$src" "$dst" &>/dev/null; then
-                warn "  .claude/$f customized (preserving)"
-            else
-                cp "$src" "$dst"
-                info "  Updated .claude/$f"
-            fi
-        fi
-    done
+PROVIDERS_DIR="$HARNESS_DIR/providers"
+PROVIDER=""
+if [ -f "$HARNESS_TARGET/manifest.json" ]; then
+    PROVIDER=$(grep -o '"provider": *"[^"]*"' "$HARNESS_TARGET/manifest.json" | cut -d'"' -f4)
 fi
 
-# OpenCode
-src="$TEMPLATES_DIR/opencode.json"
-dst="$TARGET_PROJECT/opencode.json"
-if [ -f "$src" ] && [ -f "$dst" ]; then
-    if ! diff -q "$src" "$dst" &>/dev/null; then
-        warn "  opencode.json customized (preserving)"
-    else
-        cp "$src" "$dst"
-        info "  Updated opencode.json"
-    fi
+if [ -n "$PROVIDER" ] && [ -d "$PROVIDERS_DIR/$PROVIDER" ]; then
+    info "Updating provider adapter: $PROVIDER"
+    bash "$PROVIDERS_DIR/$PROVIDER/adapter.sh" "$TARGET_PROJECT" "$HARNESS_DIR" --update
+else
+    warn "No provider adapter found to update"
 fi
-
-# Cursor
-if [ -d "$TARGET_PROJECT/.cursor" ]; then
-    for f in mcp.json hooks.json; do
-        src="$TEMPLATES_DIR/.cursor/$f"
-        dst="$TARGET_PROJECT/.cursor/$f"
-        if [ -f "$src" ] && [ -f "$dst" ]; then
-            if ! diff -q "$src" "$dst" &>/dev/null; then
-                warn "  .cursor/$f customized (preserving)"
-            else
-                cp "$src" "$dst"
-                info "  Updated .cursor/$f"
-            fi
-        fi
-    done
-fi
-
-ok "Provider adapters updated"
 
 # ─── DO NOT touch these ──────────────────────────────────────────
 
