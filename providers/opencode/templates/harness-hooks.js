@@ -27,8 +27,12 @@ function createEntry(event, data = {}) {
 }
 
 function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).slice(2, 8);
+  const counter = (generateId.counter = (generateId.counter || 0) + 1);
+  return `${timestamp}-${counter}-${random}`;
 }
+generateId.counter = 0;
 
 export const HarnessHooks = async ({ directory }) => {
   const dataDir = getHarnessDataDir(directory);
@@ -107,6 +111,12 @@ export const HarnessHooks = async ({ directory }) => {
         const startTime = callStartTimes[callID] || Date.now();
         const durationMs = Date.now() - startTime;
         delete callStartTimes[callID];
+
+        // Cleanup stale entries older than 5 minutes
+        const now = Date.now();
+        for (const [id, time] of Object.entries(callStartTimes)) {
+          if (now - time > 300000) delete callStartTimes[id];
+        }
 
         appendToJsonl(dataDir, "events.jsonl", createEntry("HOOK_COMPLETED", {
           hook: "after-task",
