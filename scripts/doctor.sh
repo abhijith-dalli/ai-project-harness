@@ -21,9 +21,9 @@ check() {
     local status="$1"
     local message="$2"
     case $status in
-        ok)   echo -e "  ${GREEN}✓${NC} $message"; ((PASS++)) ;;
-        warn) echo -e "  ${YELLOW}⚠${NC} $message"; ((WARN++)) ;;
-        fail) echo -e "  ${RED}✗${NC} $message"; ((FAIL++)) ;;
+        ok)   echo -e "  ${GREEN}✓${NC} $message"; PASS=$((PASS + 1)) ;;
+        warn) echo -e "  ${YELLOW}⚠${NC} $message"; WARN=$((WARN + 1)) ;;
+        fail) echo -e "  ${RED}✗${NC} $message"; FAIL=$((FAIL + 1)) ;;
     esac
 }
 
@@ -129,29 +129,137 @@ echo ""
 
 echo -e "${BLUE}Provider Adapters${NC}"
 
-if [ -f "$TARGET_PROJECT/.claude/settings.json" ]; then
-    check ok "Claude Code: settings.json"
+# Read provider from manifest
+PROVIDER=""
+if [ -f "$HARNESS_TARGET/manifest.json" ]; then
+    PROVIDER=$(grep -o '"provider": *"[^"]*"' "$HARNESS_TARGET/manifest.json" | cut -d'"' -f4)
+    check ok "Provider manifest: $PROVIDER"
 else
-    check warn "Claude Code: no settings.json"
+    check warn "No provider manifest found"
 fi
 
-if [ -f "$TARGET_PROJECT/.claude/hooks.json" ]; then
-    check ok "Claude Code: hooks.json"
-else
-    check warn "Claude Code: no hooks.json"
-fi
-
-if [ -f "$TARGET_PROJECT/opencode.json" ]; then
-    check ok "OpenCode: opencode.json"
-else
-    check warn "OpenCode: no opencode.json"
-fi
-
-if [ -f "$TARGET_PROJECT/.cursor/mcp.json" ]; then
-    check ok "Cursor: mcp.json"
-else
-    check warn "Cursor: not configured (optional)"
-fi
+# Check provider-specific directories
+case $PROVIDER in
+    opencode)
+        if [ -f "$TARGET_PROJECT/.opencode/AGENTS.md" ]; then
+            check ok "OpenCode: AGENTS.md exists"
+        else
+            check fail "OpenCode: AGENTS.md missing"
+        fi
+        if [ -d "$TARGET_PROJECT/.opencode/skills" ]; then
+            skill_count=$(ls -d "$TARGET_PROJECT/.opencode/skills/"*/ 2>/dev/null | wc -l | xargs)
+            check ok "OpenCode: $skill_count skills installed"
+        else
+            check fail "OpenCode: skills directory missing"
+        fi
+        if [ -d "$TARGET_PROJECT/.opencode/agents" ]; then
+            agent_count=$(ls "$TARGET_PROJECT/.opencode/agents/"*.md 2>/dev/null | wc -l | xargs)
+            check ok "OpenCode: $agent_count agents installed"
+        else
+            check fail "OpenCode: agents directory missing"
+        fi
+        if [ -f "$TARGET_PROJECT/.opencode/plugins/harness-hooks.js" ]; then
+            check ok "OpenCode: harness-hooks.js plugin exists"
+        else
+            check fail "OpenCode: harness-hooks.js plugin missing"
+        fi
+        if [ -f "$TARGET_PROJECT/opencode.json" ]; then
+            check ok "OpenCode: opencode.json exists"
+        else
+            check warn "OpenCode: opencode.json missing"
+        fi
+        ;;
+    claude)
+        if [ -f "$TARGET_PROJECT/.claude/CLAUDE.md" ]; then
+            check ok "Claude Code: CLAUDE.md exists"
+        else
+            check fail "Claude Code: CLAUDE.md missing"
+        fi
+        if [ -f "$TARGET_PROJECT/.claude/settings.json" ]; then
+            check ok "Claude Code: settings.json exists"
+        else
+            check fail "Claude Code: settings.json missing"
+        fi
+        if [ -f "$TARGET_PROJECT/.claude/hooks.json" ]; then
+            check ok "Claude Code: hooks.json exists"
+        else
+            check fail "Claude Code: hooks.json missing"
+        fi
+        if [ -d "$TARGET_PROJECT/.claude/skills" ]; then
+            skill_count=$(ls -d "$TARGET_PROJECT/.claude/skills/"*/ 2>/dev/null | wc -l | xargs)
+            check ok "Claude Code: $skill_count skills installed"
+        else
+            check fail "Claude Code: skills directory missing"
+        fi
+        if [ -d "$TARGET_PROJECT/.claude/agents" ]; then
+            agent_count=$(ls "$TARGET_PROJECT/.claude/agents/"*.md 2>/dev/null | wc -l | xargs)
+            check ok "Claude Code: $agent_count agents installed"
+        else
+            check fail "Claude Code: agents directory missing"
+        fi
+        if [ -d "$TARGET_PROJECT/.claude/hooks" ]; then
+            hook_count=$(ls "$TARGET_PROJECT/.claude/hooks/"*.sh 2>/dev/null | wc -l | xargs)
+            check ok "Claude Code: $hook_count hooks installed"
+        else
+            check fail "Claude Code: hooks directory missing"
+        fi
+        ;;
+    cursor)
+        if [ -f "$TARGET_PROJECT/.cursor/.cursorrules" ]; then
+            check ok "Cursor: .cursorrules exists"
+        else
+            check fail "Cursor: .cursorrules missing"
+        fi
+        if [ -f "$TARGET_PROJECT/.cursor/rules/harness.md" ]; then
+            check ok "Cursor: rules/harness.md exists"
+        else
+            check fail "Cursor: rules/harness.md missing"
+        fi
+        if [ -f "$TARGET_PROJECT/.cursor/hooks.json" ]; then
+            check ok "Cursor: hooks.json exists"
+        else
+            check fail "Cursor: hooks.json missing"
+        fi
+        if [ -d "$TARGET_PROJECT/.cursor/hooks" ]; then
+            hook_count=$(ls "$TARGET_PROJECT/.cursor/hooks/"*.sh 2>/dev/null | wc -l | xargs)
+            check ok "Cursor: $hook_count hooks installed"
+        else
+            check fail "Cursor: hooks directory missing"
+        fi
+        if [ -f "$TARGET_PROJECT/.cursor/mcp.json" ]; then
+            check ok "Cursor: mcp.json exists"
+        else
+            check warn "Cursor: mcp.json missing"
+        fi
+        ;;
+    codex)
+        if [ -f "$TARGET_PROJECT/AGENTS.md" ]; then
+            check ok "Codex: AGENTS.md exists"
+        else
+            check fail "Codex: AGENTS.md missing"
+        fi
+        if [ -d "$TARGET_PROJECT/.codex/agents" ]; then
+            agent_count=$(ls "$TARGET_PROJECT/.codex/agents/"*.toml 2>/dev/null | wc -l | xargs)
+            check ok "Codex: $agent_count agents installed"
+        else
+            check fail "Codex: agents directory missing"
+        fi
+        if [ -d "$TARGET_PROJECT/.codex/hooks" ]; then
+            hook_count=$(ls "$TARGET_PROJECT/.codex/hooks/"*.sh 2>/dev/null | wc -l | xargs)
+            check ok "Codex: $hook_count hooks installed"
+        else
+            check fail "Codex: hooks directory missing"
+        fi
+        if [ -f "$TARGET_PROJECT/.codex/hooks.json" ]; then
+            check ok "Codex: hooks.json exists"
+        else
+            check fail "Codex: hooks.json missing"
+        fi
+        ;;
+    *)
+        check warn "Unknown provider: $PROVIDER"
+        ;;
+esac
 
 echo ""
 

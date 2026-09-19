@@ -24,8 +24,8 @@ cd "$TMPDIR/ProjectA" && git init -q
 cd "$TMPDIR/ProjectB" && git init -q
 
 echo "Installing harness into both..."
-bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/ProjectA" 2>/dev/null
-bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/ProjectB" 2>/dev/null
+bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/ProjectA" --provider opencode 2>/dev/null
+bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/ProjectB" --provider opencode 2>/dev/null
 
 # Store memory in ProjectA
 echo ""
@@ -47,19 +47,19 @@ EOF
 # Verify ProjectA has the memory
 if [ -f "$TMPDIR/ProjectA/.harness/memory/shared/decisions/001-database-choice.md" ]; then
     echo -e "  ${GREEN}✓${NC} ProjectA has memory file"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} ProjectA missing memory file"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 # Verify ProjectB does NOT have the memory
 if [ ! -f "$TMPDIR/ProjectB/.harness/memory/shared/decisions/001-database-choice.md" ]; then
     echo -e "  ${GREEN}✓${NC} ProjectB does NOT have ProjectA's memory"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} ProjectB has ProjectA's memory — ISOLATION FAILURE"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 # Verify memory directories are separate
@@ -68,10 +68,10 @@ echo "Verifying directory isolation..."
 
 if [ "$TMPDIR/ProjectA/.harness/memory" != "$TMPDIR/ProjectB/.harness/memory" ]; then
     echo -e "  ${GREEN}✓${NC} Memory directories are separate paths"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Memory directories share the same path"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 # Store different memory in ProjectB
@@ -91,20 +91,20 @@ EOF
 # Verify ProjectA does NOT have ProjectB's memory
 if [ ! -f "$TMPDIR/ProjectA/.harness/memory/shared/decisions/001-framework-choice.md" ]; then
     echo -e "  ${GREEN}✓${NC} ProjectA does NOT have ProjectB's memory"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} ProjectA has ProjectB's memory — ISOLATION FAILURE"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 # Verify each project has its own memory
 if [ -f "$TMPDIR/ProjectA/.harness/memory/shared/decisions/001-database-choice.md" ] && \
    [ -f "$TMPDIR/ProjectB/.harness/memory/shared/decisions/001-framework-choice.md" ]; then
     echo -e "  ${GREEN}✓${NC} Each project has its own memory"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Memory files missing after cross-store"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 echo ""

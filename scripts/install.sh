@@ -8,6 +8,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HARNESS_DIR="$(dirname "$SCRIPT_DIR")"
 TEMPLATES_DIR="$HARNESS_DIR/templates"
+PROVIDERS_DIR="$HARNESS_DIR/providers"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -24,26 +25,23 @@ usage() {
     echo "Usage: $0 <target-project-path> [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --enable-cursor         Enable Cursor adapter"
-    echo "  --enable-codex          Enable Codex CLI adapter"
+    echo "  --provider <name>       AI provider (opencode, claude, cursor, codex)"
     echo "  --packs <packs>         Enable specialist packs (comma-separated)"
     echo "  --help                  Show this help"
     echo ""
     echo "Example:"
-    echo "  $0 /path/to/MyProject"
-    echo "  $0 /path/to/MyProject --enable-cursor --packs backend,database"
+    echo "  $0 /path/to/MyProject --provider opencode"
+    echo "  $0 /path/to/MyProject --provider claude --packs backend,database"
     exit 0
 }
 
 TARGET_PROJECT=""
-ENABLE_CURSOR=false
-ENABLE_CODEX=false
+PROVIDER=""
 PACKS=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --enable-cursor) ENABLE_CURSOR=true; shift ;;
-        --enable-codex) ENABLE_CODEX=true; shift ;;
+        --provider) PROVIDER="$2"; shift 2 ;;
         --packs) PACKS="$2"; shift 2 ;;
         --help) usage ;;
         -*) error "Unknown option: $1"; usage ;;
@@ -55,6 +53,39 @@ if [ -z "$TARGET_PROJECT" ]; then
     error "Target project path is required"
     usage
 fi
+
+# ─── Interactive provider selection ─────────────────────────────
+
+if [ -z "$PROVIDER" ]; then
+    echo ""
+    echo "Select AI provider:"
+    echo "  1) OpenCode"
+    echo "  2) Claude Code"
+    echo "  3) Cursor"
+    echo "  4) Codex"
+    echo ""
+    read -r -p "Enter choice [1-4]: " choice
+    case $choice in
+        1) PROVIDER="opencode" ;;
+        2) PROVIDER="claude" ;;
+        3) PROVIDER="cursor" ;;
+        4) PROVIDER="codex" ;;
+        *) error "Invalid choice: $choice"; usage ;;
+    esac
+fi
+
+# Validate provider
+case $PROVIDER in
+    opencode|claude|cursor|codex) ;;
+    *) error "Invalid provider: $PROVIDER (must be opencode, claude, cursor, or codex)"; usage ;;
+esac
+
+if [ ! -d "$PROVIDERS_DIR/$PROVIDER" ]; then
+    error "Provider adapter not found: $PROVIDER"
+    exit 1
+fi
+
+info "Using provider: $PROVIDER"
 
 TARGET_PROJECT="$(cd "$TARGET_PROJECT" 2>/dev/null && pwd)" || {
     error "Target project does not exist: $TARGET_PROJECT"
@@ -194,37 +225,11 @@ for readme in shared/README.md local/README.md shared/project/README.md shared/d
 done
 ok "Configuration installed"
 
-# ─── Install provider adapters (always overwrite) ────────────────
+# ─── Copy VERSION ─────────────────────────────────────────────────
 
-info "Installing provider adapters..."
-
-# Claude Code adapter (always installed)
-mkdir -p "$TARGET_PROJECT/.claude"
-cp "$TEMPLATES_DIR/.claude/settings.json" "$TARGET_PROJECT/.claude/" 2>/dev/null || true
-cp "$TEMPLATES_DIR/.claude/hooks.json" "$TARGET_PROJECT/.claude/" 2>/dev/null || true
-cp "$TEMPLATES_DIR/.claude/CLAUDE.md" "$TARGET_PROJECT/.claude/" 2>/dev/null || true
-ok "  Claude Code adapter installed"
-
-# OpenCode adapter (always installed)
-cp "$TEMPLATES_DIR/opencode.json" "$TARGET_PROJECT/" 2>/dev/null || true
-mkdir -p "$TARGET_PROJECT/.opencode"
-cp "$TEMPLATES_DIR/.opencode/AGENTS.md" "$TARGET_PROJECT/.opencode/" 2>/dev/null || true
-ok "  OpenCode adapter installed"
-
-# Cursor adapter (optional)
-if $ENABLE_CURSOR; then
-    mkdir -p "$TARGET_PROJECT/.cursor"
-    cp "$TEMPLATES_DIR/.cursor/mcp.json" "$TARGET_PROJECT/.cursor/" 2>/dev/null || true
-    cp "$TEMPLATES_DIR/.cursor/hooks.json" "$TARGET_PROJECT/.cursor/" 2>/dev/null || true
-    cp "$TEMPLATES_DIR/.cursor/.cursorrules" "$TARGET_PROJECT/.cursor/" 2>/dev/null || true
-    ok "  Cursor adapter installed"
-fi
-
-# Codex CLI adapter (optional)
-if $ENABLE_CODEX; then
-    mkdir -p "$TARGET_PROJECT/.agents/plugins"
-    cp "$TEMPLATES_DIR/.agents/mcp.json" "$TARGET_PROJECT/.agents/" 2>/dev/null || true
-    ok "  Codex CLI adapter installed"
+if [ -f "$HARNESS_DIR/VERSION" ]; then
+    cp "$HARNESS_DIR/VERSION" "$HARNESS_TARGET/"
+    info "  Installed VERSION"
 fi
 
 # ─── Enable specialist packs ──────────────────────────────────────
@@ -245,6 +250,11 @@ if [ -n "$PACKS" ]; then
     done
 fi
 
+# ─── Install provider adapter (selected provider only) ──────────
+
+info "Installing provider adapter: $PROVIDER"
+bash "$PROVIDERS_DIR/$PROVIDER/adapter.sh" "$TARGET_PROJECT" "$HARNESS_DIR" ${PACKS:+--packs "$PACKS"}
+
 # ─── Update .gitignore ────────────────────────────────────────────
 
 info "Updating .gitignore..."
@@ -259,12 +269,23 @@ GITIGNORE_ENTRIES=(
     ".harness/data/"
     ".harness/dashboard/"
     ".harness/config/"
-    ".claude/"
-    ".opencode/"
-    ".cursor/"
-    ".agents/"
-    "opencode.json"
 )
+
+# Add provider-specific entries
+case $PROVIDER in
+    opencode)
+        GITIGNORE_ENTRIES+=(".opencode/" "opencode.json")
+        ;;
+    claude)
+        GITIGNORE_ENTRIES+=(".claude/")
+        ;;
+    cursor)
+        GITIGNORE_ENTRIES+=(".cursor/")
+        ;;
+    codex)
+        GITIGNORE_ENTRIES+=(".codex/" "AGENTS.md")
+        ;;
+esac
 
 for entry in "${GITIGNORE_ENTRIES[@]}"; do
     if [ -f "$GITIGNORE" ]; then
@@ -289,6 +310,7 @@ echo -e "${GREEN}========================================${NC}"
 echo ""
 echo "  Project: $PROJECT_NAME"
 echo "  Location: $TARGET_PROJECT"
+echo "  Provider: $PROVIDER"
 echo ""
 echo "  Installed components:"
 echo "    .harness/agents/       — $(ls "$HARNESS_TARGET/agents/"*.md 2>/dev/null | wc -l | xargs) agents"
@@ -297,14 +319,12 @@ echo "    .harness/hooks/        — $(ls "$HARNESS_TARGET/hooks/"*.md 2>/dev/nu
 echo "    .harness/memory/       — shared + local directories"
 echo "    .harness/data/         — runtime data files"
 echo "    .harness/dashboard/    — observability dashboard"
-echo "    .claude/               — Claude Code adapter"
-echo "    opencode.json          — OpenCode adapter"
-if $ENABLE_CURSOR; then
-echo "    .cursor/               — Cursor adapter"
-fi
-if $ENABLE_CODEX; then
-echo "    .agents/               — Codex CLI adapter"
-fi
+case $PROVIDER in
+    opencode)  echo "    .opencode/            — OpenCode adapter" ;;
+    claude)    echo "    .claude/               — Claude Code adapter" ;;
+    cursor)    echo "    .cursor/               — Cursor adapter" ;;
+    codex)     echo "    .codex/                — Codex CLI adapter" ;;
+esac
 echo ""
 echo "  Next steps:"
 echo "    1. Fill in .harness/project-context.md"

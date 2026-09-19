@@ -23,7 +23,7 @@ cd "$TMPDIR/FileMemoryTest"
 git init -q
 
 echo "Installing harness..."
-bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/FileMemoryTest" 2>/dev/null
+bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/FileMemoryTest" --provider opencode 2>/dev/null
 
 # Test 1: Can create decisions
 echo ""
@@ -44,10 +44,10 @@ EOF
 
 if [ -f "$TMPDIR/FileMemoryTest/.harness/memory/shared/decisions/001-test-decision.md" ]; then
     echo -e "  ${GREEN}✓${NC} Decision file created"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Decision file not created"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 # Test 2: Can create lessons
@@ -69,10 +69,10 @@ EOF
 
 if [ -f "$TMPDIR/FileMemoryTest/.harness/memory/shared/lessons/001-test-lesson.md" ]; then
     echo -e "  ${GREEN}✓${NC} Lesson file created"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Lesson file not created"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 # Test 3: Can create observations
@@ -94,10 +94,10 @@ EOF
 
 if [ -f "$TMPDIR/FileMemoryTest/.harness/memory/shared/observations/001-test-observation.md" ]; then
     echo -e "  ${GREEN}✓${NC} Observation file created"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Observation file not created"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 # Test 4: Files have correct YAML frontmatter
@@ -105,10 +105,10 @@ echo ""
 echo "Test: Verifying YAML frontmatter..."
 if grep -q "^type: decision" "$TMPDIR/FileMemoryTest/.harness/memory/shared/decisions/001-test-decision.md"; then
     echo -e "  ${GREEN}✓${NC} Decision has correct frontmatter"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Decision missing frontmatter"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 # Test 5: Local memory is separate from shared
@@ -123,10 +123,10 @@ EOF
 
 if [ -f "$TMPDIR/FileMemoryTest/.harness/memory/local/sessions/001-session.md" ]; then
     echo -e "  ${GREEN}✓${NC} Local memory works independently"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Local memory failed"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 echo ""

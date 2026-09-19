@@ -10,6 +10,7 @@ Developer Machine
 ├── Claude Code          (global application)
 ├── Cursor               (global application)
 ├── OpenCode             (global application)
+├── Codex                (global application)
 │
 └── MyProject
     │
@@ -26,17 +27,16 @@ Developer Machine
     │   │   ├── events.jsonl
     │   │   └── agent_runs.jsonl
     │   ├── dashboard/                ← observability UI
+    │   ├── manifest.json             ← provider manifest
     │   └── project-context.md
     │
-    ├── .claude/                     ← Claude Code adapter
-    ├── .opencode/                   ← OpenCode adapter
-    ├── .cursor/                     ← Cursor adapter
-    └── application source
+    └── [provider directory]          ← ONE of: .opencode/, .claude/, .cursor/, .codex/
 ```
 
 ## Key Principles
 
 - **`.harness/` is the single source of truth** — provider-specific directories are adapters/generated views only
+- **Exclusive provider installation** — only the selected provider's directories are created
 - **Project-scoped memory** — memory for Project A never leaks into Project B
 - **File-based memory** — works without any server; memory is stored as markdown files
 - **Real upstream content** — agents and skills adapt real implementations from proven repositories
@@ -61,7 +61,14 @@ cd ai-project-harness
 ### Step 2 — Install into your project
 
 ```bash
+# Interactive provider selection
 ./scripts/install.sh /path/to/YourProject
+
+# Or specify provider directly
+./scripts/install.sh /path/to/YourProject --provider opencode
+./scripts/install.sh /path/to/YourProject --provider claude
+./scripts/install.sh /path/to/YourProject --provider cursor
+./scripts/install.sh /path/to/YourProject --provider codex
 ```
 
 ### Step 3 — Verify installation
@@ -97,20 +104,17 @@ Then use Claude Code, Cursor, or OpenCode as normal. The harness is automaticall
 ### Install into an existing project
 
 ```bash
+# Interactive provider selection
 ./scripts/install.sh /path/to/YourProject
-```
 
-With options:
+# With provider flag
+./scripts/install.sh /path/to/YourProject --provider opencode
 
-```bash
-# Enable Cursor adapter
-./scripts/install.sh /path/to/YourProject --enable-cursor
-
-# Enable specialist packs
-./scripts/install.sh /path/to/YourProject --packs backend,database,testing
+# With specialist packs
+./scripts/install.sh /path/to/YourProject --provider claude --packs backend,database
 
 # Combine options
-./scripts/install.sh /path/to/YourProject --enable-cursor --packs backend,database
+./scripts/install.sh /path/to/YourProject --provider cursor --packs backend,database
 ```
 
 The installer creates:
@@ -134,11 +138,9 @@ YourProject/
 │   │   ├── index.html
 │   │   ├── dashboard.css
 │   │   └── dashboard.js
+│   ├── manifest.json     # Provider manifest
 │   └── project-context.md
-├── .claude/              # Claude Code adapter
-├── .opencode/            # OpenCode adapter
-├── opencode.json         # OpenCode config
-└── [your existing source code]
+└── [provider directory]  # ONE of: .opencode/, .claude/, .cursor/, .codex/
 ```
 
 ### What does NOT get created
@@ -164,9 +166,7 @@ Running the installer again will:
 ```
 .harness/                     ← canonical provider-independent source
     ↓
-.claude/   .opencode/   .cursor/
-    ↓
-provider-specific adapters/generated views only
+[provider directory]          ← ONE of: .opencode/, .claude/, .cursor/, .codex/
 ```
 
 `.harness/` owns the canonical agents, skills, workflows, hooks, memory model, and project context. Provider-specific files are adapters generated from `.harness/`.
@@ -333,11 +333,14 @@ npx serve -l 8080 .harness/dashboard
 
 ### Provider adapters
 
-| Provider | Files | Integration |
-|----------|-------|-------------|
-| **Claude Code** | `.claude/settings.json`, `.claude/hooks.json`, `.claude/CLAUDE.md` | Hook wiring, project instructions |
-| **OpenCode** | `opencode.json`, `.opencode/AGENTS.md` | Project instructions |
-| **Cursor** | `.cursor/mcp.json`, `.cursor/hooks.json`, `.cursor/.cursorrules` | Hook wiring, project rules |
+| Provider | Native Directory | Skills | Agents | Hooks |
+|----------|-----------------|--------|--------|-------|
+| **OpenCode** | `.opencode/` | `.opencode/skills/<name>/SKILL.md` | `.opencode/agents/<name>.md` | Plugin events |
+| **Claude Code** | `.claude/` | `.claude/skills/<name>/SKILL.md` | `.claude/agents/<name>.md` | `.claude/hooks.json` |
+| **Cursor** | `.cursor/` | N/A (via rules) | N/A (via rules) | `.cursor/hooks.json` |
+| **Codex** | `.codex/` | N/A | `.codex/agents/<name>.toml` | `.codex/hooks.json` |
+
+See [docs/providers.md](docs/providers.md) for detailed provider documentation.
 
 ### Specialist packs
 
@@ -462,10 +465,12 @@ hooks:
 ### install.sh
 
 ```bash
-./scripts/install.sh /path/to/project [--enable-cursor] [--enable-codex] [--packs backend,database]
+./scripts/install.sh /path/to/project [--provider <name>] [--packs backend,database]
 ```
 
 Installs the harness into a target project. Idempotent — safe to run multiple times.
+
+Provider options: `opencode`, `claude`, `cursor`, `codex`
 
 ### update.sh
 
@@ -606,10 +611,11 @@ for test in tests/*.sh; do bash "$test"; done
 | Test | What it verifies |
 |------|-----------------|
 | **install-test.sh** | Expected files exist after installation |
+| **reinstall-test.sh** | Second installation does not corrupt project |
 | **memory-isolation-test.sh** | ProjectA memory does not leak into ProjectB |
 | **cross-agent-memory-test.sh** | Memory is provider-independent |
 | **canonical-memory-test.sh** | File-based memory works without any server |
-| **reinstall-test.sh** | Second installation does not corrupt project |
+| **provider-test.sh** | All 4 providers install exclusively with correct structure |
 
 ---
 
@@ -628,8 +634,11 @@ See `docs/upstream-adaptations.md` for detailed attribution.
 ## Quick Reference
 
 ```bash
-# Install
+# Install (interactive provider selection)
 ./scripts/install.sh /path/to/project
+
+# Install with specific provider
+./scripts/install.sh /path/to/project --provider opencode
 
 # Verify
 ./scripts/doctor.sh /path/to/project

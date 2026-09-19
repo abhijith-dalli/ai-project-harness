@@ -24,8 +24,8 @@ mkdir -p "$TMPDIR/CrossAgentTest"
 cd "$TMPDIR/CrossAgentTest"
 git init -q
 
-echo "Installing harness with all adapters..."
-bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/CrossAgentTest" --enable-cursor --enable-codex 2>/dev/null
+echo "Installing harness with OpenCode provider..."
+bash "$HARNESS_DIR/scripts/install.sh" "$TMPDIR/CrossAgentTest" --provider opencode 2>/dev/null
 
 # Simulate Claude Code storing memory
 echo ""
@@ -48,44 +48,42 @@ EOF
 echo "Verifying OpenCode adapter shares memory..."
 if [ -f "$TMPDIR/CrossAgentTest/.harness/memory/shared/observations/001-claude-finding.md" ]; then
     echo -e "  ${GREEN}✓${NC} Memory file is accessible from shared directory"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Memory file not found in shared directory"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 # Verify Cursor adapter shares memory
 echo "Verifying Cursor adapter shares memory..."
 if [ -f "$TMPDIR/CrossAgentTest/.harness/memory/shared/observations/001-claude-finding.md" ]; then
     echo -e "  ${GREEN}✓${NC} Memory is provider-independent"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Memory is provider-dependent"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 # Verify all provider adapters are configured
 echo ""
-echo "Verifying all provider adapters..."
-for adapter in ".claude/settings.json" "opencode.json" ".cursor/mcp.json"; do
-    if [ -f "$TMPDIR/CrossAgentTest/$adapter" ]; then
-        echo -e "  ${GREEN}✓${NC} $adapter configured"
-        ((PASS++))
-    else
-        echo -e "  ${RED}✗${NC} $adapter missing"
-        ((FAIL++))
-    fi
-done
+echo "Verifying provider adapter..."
+if [ -f "$TMPDIR/CrossAgentTest/opencode.json" ]; then
+    echo -e "  ${GREEN}✓${NC} opencode.json configured"
+    PASS=$((PASS + 1))
+else
+    echo -e "  ${RED}✗${NC} opencode.json missing"
+    FAIL=$((FAIL + 1))
+fi
 
 # Verify memory is in the canonical location
 echo ""
 echo "Verifying canonical memory location..."
 if [ -d "$TMPDIR/CrossAgentTest/.harness/memory/shared" ]; then
     echo -e "  ${GREEN}✓${NC} Canonical memory directory exists"
-    ((PASS++))
+    PASS=$((PASS + 1))
 else
     echo -e "  ${RED}✗${NC} Canonical memory directory missing"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
 fi
 
 # No provider-specific memory directories should exist
@@ -94,10 +92,10 @@ echo "Verifying no provider-specific memory copies..."
 for prov_dir in ".claude/memory" ".cursor/memory" ".opencode/memory"; do
     if [ ! -d "$TMPDIR/CrossAgentTest/$prov_dir" ]; then
         echo -e "  ${GREEN}✓${NC} No $prov_dir (correct)"
-        ((PASS++))
+        PASS=$((PASS + 1))
     else
         echo -e "  ${RED}✗${NC} $prov_dir exists (should not)"
-        ((FAIL++))
+        FAIL=$((FAIL + 1))
     fi
 done
 
